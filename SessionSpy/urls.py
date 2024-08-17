@@ -18,7 +18,7 @@ from django.contrib import admin
 from django.contrib.auth.views import logout_then_login
 from django.urls import path
 
-from SessionSpyre import user_views
+from SessionSpyre import user_views, api
 
 urlpatterns = [
     path('admin/', admin.site.urls),
@@ -27,4 +27,5 @@ urlpatterns = [
     path('logout/', logout_then_login, {'login_url': '/'}, name='logout'),
     path("register/", user_views.RegisterView.as_view(), name="register"),
     path('accounts/profile/', user_views.profile_view, name='profile'),
+    # path("api/", api.urls),
 ]
