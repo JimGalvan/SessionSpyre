@@ -1,0 +1,30 @@
+{% extends 'base.html' %}
+
+{% block content %}
+    {% if user.is_authenticated %}
+        <div class="text-center py-8">
+            <h1 class="text-4xl font-bold">Welcome, {{ user.username }}</h1>
+        </div>
+    {% else %}
+        <div class="w-full max-w-xs mx-auto mt-5">
+            <h1 class="text-2xl font-bold mb-3 text-center">Welcome to SessionSpyre!</h1>
+            <p class="mb-3 text-center">Record your costumer sessions!</p>
+            <p class="mb-3 text-center">Please register or log in to
+                continue.</p>
+            {% if user.is_authenticated %}
+                <p class="text-center">You are logged in as {{ user.username }}.</p>
+            {% else %}
+                <div class="flex items-center justify-center">
+                    <a href="{% url 'register' %}"
+                       class="bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded focus:outline-none focus:shadow-outline">
+                        Register
+                    </a>
+                    <a href="{% url 'login' %}"
+                       class="bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded focus:outline-none focus:shadow-outline ml-4">
+                        Login
+                    </a>
+                </div>
+            {% endif %}
+        </div>
+    {% endif %}
+{% endblock %}
