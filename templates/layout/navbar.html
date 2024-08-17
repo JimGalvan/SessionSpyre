@@ -58,6 +58,9 @@
                 </div>
                 <div class="hidden lg:flex lg:items-center lg:space-x-4">
                     {% if user.is_authenticated %}
+                        <a :class="currentUrl == '{% url 'sessions_view' %}' ? 'bg-blue-500' : 'bg-gray-700'"
+                           class="hover:bg-gray-600 text-white font-bold py-2 px-4 rounded no-underline transition duration-150 ease-in-out"
+                           href="{% url 'sessions_view' %}">Sessions</a>
                         <a :class="currentUrl == '{% url 'profile' %}' ? 'bg-blue-500' : 'bg-gray-700'"
                            class="hover:bg-gray-600 text-white font-bold py-2 px-4 rounded no-underline transition duration-150 ease-in-out"
                            href="{% url 'profile' %}">Profile</a>
@@ -96,11 +99,11 @@
                 </button>
                 <ul class="mt-12 space-y-1">
                     {% if user.is_authenticated %}
-{#                        <li class="px-4 py-2">#}
-{#                            <a :class="currentUrl == '{% url 'todo_lists' %}' ? 'bg-blue-500' : 'bg-gray-700'"#}
-{#                               class="block hover:bg-gray-600 text-white font-bold py-2 px-4 rounded no-underline transition duration-150 ease-in-out"#}
-{#                               href="{% url 'todo_list_view' %}">Todo Lists</a>#}
-{#                        </li>#}
+                        <li class="px-4 py-2">
+                            <a :class="currentUrl == '{% url 'sessions_view' %}' ? 'bg-blue-500' : 'bg-gray-700'"
+                               class="block hover:bg-gray-600 text-white font-bold py-2 px-4 rounded no-underline transition duration-150 ease-in-out"
+                               href="{% url 'sessions_view' %}">Sessions</a>
+                        </li>
                         <li class="px-4 py-2">
                             <a :class="currentUrl == '{% url 'profile' %}' ? 'bg-blue-500' : 'bg-gray-700'"
                                class="block hover:bg-gray-600 text-white font-bold py-2 px-4 rounded no-underline transition duration-150 ease-in-out"

@@ -18,14 +18,16 @@ from django.contrib import admin
 from django.contrib.auth.views import logout_then_login
 from django.urls import path
 
-from SessionSpyre import user_views, api
+from SessionSpyre import user_views, views
+from SessionSpyre.api import api
 
 urlpatterns = [
-    path('admin/', admin.site.urls),
     path('', user_views.index, name='index'),
+    path("api/", api.urls),
     path('login/', user_views.Login.as_view(), name='login'),
     path('logout/', logout_then_login, {'login_url': '/'}, name='logout'),
     path("register/", user_views.RegisterView.as_view(), name="register"),
     path('accounts/profile/', user_views.profile_view, name='profile'),
-    # path("api/", api.urls),
+    path('sessions_view/', views.sessions_view, name='sessions_view'),
+    path('admin/', admin.site.urls),
 ]

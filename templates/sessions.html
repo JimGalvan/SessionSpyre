@@ -1,0 +1,26 @@
+{% extends 'base.html' %}
+{% block content %}
+    <div class="container">
+        <h1>Recorded Sessions</h1>
+        <table>
+            <thead>
+            <tr>
+                <th>Session ID</th>
+                <th>User ID</th>
+                <th>Date</th>
+                <th>Actions</th>
+            </tr>
+            </thead>
+            <tbody>
+            {% for session in sessions %}
+                <tr>
+                    <td>{{ session.session_id }}</td>
+                    <td>{{ session.user_id }}</td>
+                    <td>{{ session.created_at }}</td>
+{#                    <td><a href="{% url 'replay_session' session.session_id %}">Replay</a></td>#}
+                </tr>
+            {% endfor %}
+            </tbody>
+        </table>
+    </div>
+{% endblock %}
