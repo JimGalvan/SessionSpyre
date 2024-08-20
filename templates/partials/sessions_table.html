@@ -1,0 +1,39 @@
+{% load utility_tags %}
+<table id="sessions" class="min-w-full bg-white border border-gray-200">
+    <thead>
+    <tr class="w-full bg-gray-800 text-white">
+        <th class="py-2 px-4 border-b">Session ID</th>
+        <th class="py-2 px-4 border-b">User ID</th>
+        <th class="py-2 px-4 border-b">Date</th>
+        <th class="py-2 px-4 border-b">Actions</th>
+    </tr>
+    </thead>
+    <tbody>
+    {% if sessions %}
+        {% for session in sessions %}
+            <tr class="hover:bg-gray-100">
+                <td class="py-2 px-4 border-b">{{ session.session_id }}</td>
+                <td class="py-2 px-4 border-b">{{ session.user_id }}</td>
+                <td class="py-2 px-4 border-b">{{ session.created_at|convert_utc_to_local:user_tz }}</td>
+                <td class="py-2 px-4 border-b">
+                    <div>
+                        <button type="button"
+                                hx-headers='{"X-CSRFToken": "{{ csrf_token }}"}'
+                                hx-delete="{% url 'delete_session' session.session_id %}"
+                                hx-target="#sessions"
+                                hx-trigger="click"
+                                class="text-red-500 hover:underline">Delete
+                        </button>
+                        <a href="{% url 'replay_session' session.session_id %}"
+                           class="text-blue-500 hover:underline">Replay</a>
+                    </div>
+                </td>
+            </tr>
+        {% endfor %}
+    {% else %}
+        <tr>
+            <td class="py-2 px-4 border-b" colspan="4">No sessions found.</td>
+        </tr>
+    {% endif %}
+    </tbody>
+</table>

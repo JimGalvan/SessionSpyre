@@ -6,19 +6,16 @@
             <div id="rrweb-player"></div>
             <script>
                 document.addEventListener('DOMContentLoaded', function () {
-                    {#let events = '{{ session.events.get_json_data|escapejs }}';#}
                     const events = JSON.parse('{{ session.get_events_json|escapejs }}');
-                    console.log('Events data:', events);
-
-                    // Initialize rrweb-player if events are valid
+           
                     if (events.length > 0) {
                         new rrwebPlayer({
                             target: document.getElementById('rrweb-player'),
                             props: {
                                 events: events,
-                                width: 600,      // Optional: set player width
-                                height: 400,     // Optional: set player height
-                                autoPlay: true,  // Optional: auto-play the session
+                                width: 800,
+                                height: 600,
+                                autoPlay: true,
                             }
                         });
                     } else {

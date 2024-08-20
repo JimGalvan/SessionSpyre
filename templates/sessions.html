@@ -2,30 +2,6 @@
 {% block content %}
     <div class="container">
         <h1 class="text-2xl font-bold mb-3 text-center">Recorded Sessions</h1>
-        <table class="min-w-full bg-white border border-gray-200">
-            <thead>
-            <tr class="w-full bg-gray-800 text-white">
-                <th class="py-2 px-4 border-b">Session ID</th>
-                <th class="py-2 px-4 border-b">User ID</th>
-                <th class="py-2 px-4 border-b">Date</th>
-                <th class="py-2 px-4 border-b">Actions</th>
-            </tr>
-            </thead>
-            <tbody>
-            {% for session in sessions %}
-                <tr class="hover:bg-gray-100">
-                    <td class="py-2 px-4 border-b">{{ session.session_id }}</td>
-                    <td class="py-2 px-4 border-b">{{ session.user_id }}</td>
-                    <td class="py-2 px-4 border-b">{{ session.created_at }}</td>
-                    <td class="py-2 px-4 border-b">
-                    <td class="py-2 px-4 border-b">
-                    <a href="{% url 'replay_session' session.session_id %}"
-                                                      class="text-blue-500 hover:underline">Replay</a></td>
-                    {#                    <td class="py-2 px-4 border-b"><a href="/api/replay-session/{{ session.session_id }}"#}
-                    {#                                                      class="text-blue-500 hover:underline">Replay</a></td>#}
-                </tr>
-            {% endfor %}
-            </tbody>
-        </table>
+        {% include 'partials/sessions_table.html' %}
     </div>
 {% endblock %}

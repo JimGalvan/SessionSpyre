@@ -43,6 +43,7 @@ MIDDLEWARE = [
     'django.contrib.messages.middleware.MessageMiddleware',
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
     'corsheaders.middleware.CorsMiddleware',
+    'SessionSpyre.middleware.TimezoneMiddleware',
 ]
 
 ROOT_URLCONF = 'SessionSpy.urls'
@@ -106,3 +107,6 @@ STATIC_URL = 'static/'
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 
 CORS_ALLOW_ALL_ORIGINS = True
+
+STATICFILES_DIRS = [BASE_DIR / 'static']
+
