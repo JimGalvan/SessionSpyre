@@ -1,0 +1,31 @@
+{% extends 'base.html' %}
+{% block content %}
+    <div>
+        <div class="container">
+            <h1>Replay Session {{ session.session_id }}</h1>
+            <div id="rrweb-player"></div>
+            <script>
+                document.addEventListener('DOMContentLoaded', function () {
+                    {#let events = '{{ session.events.get_json_data|escapejs }}';#}
+                    const events = JSON.parse('{{ session.get_events_json|escapejs }}');
+                    console.log('Events data:', events);
+
+                    // Initialize rrweb-player if events are valid
+                    if (events.length > 0) {
+                        new rrwebPlayer({
+                            target: document.getElementById('rrweb-player'),
+                            props: {
+                                events: events,
+                                width: 600,      // Optional: set player width
+                                height: 400,     // Optional: set player height
+                                autoPlay: true,  // Optional: auto-play the session
+                            }
+                        });
+                    } else {
+                        console.error('No valid events to replay');
+                    }
+                });
+            </script>
+        </div>
+    </div>
+{% endblock %}

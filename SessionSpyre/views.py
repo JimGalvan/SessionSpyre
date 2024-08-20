@@ -1,24 +1,14 @@
 from django.shortcuts import render
 
+from SessionSpyre.models import UserSession
+
 
 def sessions_view(request):
-    sessions = [
-        {
-            "session_id": "session_1",
-            "user_id": "user_1",
-            "events": [
-                {"event": "click", "element": "button_1"},
-                {"event": "click", "element": "button_2"},
-            ]
-        },
-        {
-            "session_id": "session_2",
-            "user_id": "user_2",
-            "events": [
-                {"event": "click", "element": "button_3"},
-                {"event": "click", "element": "button_4"},
-            ]
-        }
-    ]
-
+    user_id: str = request.user.id
+    sessions: list = UserSession.objects.filter(user_id=user_id).order_by('-created_at')
     return render(request, 'sessions.html', {'sessions': sessions})
+
+
+def replay_session(request, session_id):
+    session = UserSession.objects.get(session_id=session_id)
+    return render(request, 'replay_session.html', {'session': session})

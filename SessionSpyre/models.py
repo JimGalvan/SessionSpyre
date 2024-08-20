@@ -1,3 +1,5 @@
+import json
+
 from django.db import models
 
 
@@ -21,3 +23,7 @@ class UserSession(models.Model):
 
     def __str__(self):
         return f"Session {self.session_id} for User {self.user_id}"
+
+    @property
+    def get_events_json(self):
+        return json.dumps(self.events)

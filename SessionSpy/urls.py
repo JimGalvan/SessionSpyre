@@ -24,10 +24,12 @@ from SessionSpyre.api import api
 urlpatterns = [
     path('', user_views.index, name='index'),
     path("api/", api.urls),
+    # path('replay-session/<str:session_id>/', api.urls, name='replay_session'),
     path('login/', user_views.Login.as_view(), name='login'),
     path('logout/', logout_then_login, {'login_url': '/'}, name='logout'),
     path("register/", user_views.RegisterView.as_view(), name="register"),
     path('accounts/profile/', user_views.profile_view, name='profile'),
     path('sessions_view/', views.sessions_view, name='sessions_view'),
+    path('replay_session/<str:session_id>/', views.replay_session, name='replay_session'),
     path('admin/', admin.site.urls),
 ]

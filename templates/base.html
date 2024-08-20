@@ -11,41 +11,11 @@
     <script src="https://unpkg.com/htmx.org@2.0.0"
             integrity="sha384-wS5l5IKJBvK6sPTKa2WZ1js3d947pvWXbPJ1OmWfEuxLgeHcEbjUUA5i9V5ZkpCw"
             crossorigin="anonymous"></script>
-    <script src="https://cdn.jsdelivr.net/npm/sortablejs@latest/Sortable.min.js"></script>
-    <script>
-        htmx.onLoad(function (content) {
-            var sortables = document.querySelectorAll(".sortable");
-            for (var i = 0; i < sortables.length; i++) {
-                var sortable = sortables[i];
-                var sortableInstance = new Sortable(sortable, {
-                    animation: 150,
-                    ghostClass: 'blue-background-class',
-                    delay: 500, // time in milliseconds to define when the sorting should start
-                    delayOnTouchOnly: true, // only delay if user is using touch
-                    // Make the `.htmx-indicator` unsortable
-                    filter: ".htmx-indicator",
-                    onMove: function (evt) {
-                        return evt.related.className.indexOf('htmx-indicator') === -1;
-                    },
-                });
-
-                // Re-enable sorting on the `htmx:afterSwap` event
-                sortable.addEventListener("htmx:afterSwap", function () {
-                    sortableInstance.option("disabled", false);
-                });
-            }
-        })
-    </script>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/rrweb-player@latest/dist/style.css">
+    <script src="https://cdn.jsdelivr.net/npm/rrweb-player@latest/dist/index.js"></script>
     <style>
         [x-cloak] {
             display: none;
-        }
-
-        .no-select {
-            user-select: none;
-            -webkit-user-select: none;
-            -moz-user-select: none;
-            -ms-user-select: none;
         }
 
         /* Ensure footer is at the bottom */
