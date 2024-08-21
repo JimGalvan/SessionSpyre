@@ -16,6 +16,7 @@ urlpatterns = [
     path('sessions_view/', sessions_views.sessions_view, name='sessions_view'),
     path('update-timezone/', user_views.update_timezone, name='update_timezone'),
     path('set-timezone/', user_views.set_timezone, name='set_timezone'),
+    path('check-timezone/', user_views.check_timezone, name='check_timezone'),
     path('replay_session/<str:session_id>/', sessions_views.replay_session, name='replay_session'),
     path('delete_session/<str:session_id>/', sessions_views.delete_session, name='delete_session'),
     path('admin/', admin.site.urls),

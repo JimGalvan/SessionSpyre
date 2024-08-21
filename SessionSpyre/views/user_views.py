@@ -65,3 +65,8 @@ def set_timezone(request):
                 request.user.userprofile.save()
         return JsonResponse({'status': 'success', 'timezone': timezone})
     return JsonResponse({'status': 'failed'}, status=400)
+
+
+def check_timezone(request):
+    timezone_set = 'django_timezone' in request.session
+    return JsonResponse({'timezoneSet': timezone_set})
