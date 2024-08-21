@@ -1,6 +1,6 @@
 from django.apps import AppConfig
 
 
-class SessionspyreConfig(AppConfig):
+class SessionTrackerConfig(AppConfig):
     default_auto_field = 'django.db.models.BigAutoField'
-    name = 'SessionSpyre'
+    name = 'session_tracker'

@@ -2,9 +2,9 @@ from django.contrib import admin
 from django.contrib.auth.views import logout_then_login
 from django.urls import path
 
-from SessionSpyre.api import api
-from SessionSpyre.views import session_views as sessions_views
-from SessionSpyre.views import user_views as user_views
+from session_tracker.api import api
+from session_tracker.views import session_views as sessions_views
+from session_tracker.views import user_views as user_views
 
 urlpatterns = [
     path('', user_views.index, name='index'),
