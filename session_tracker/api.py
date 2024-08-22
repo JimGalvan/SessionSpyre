@@ -22,9 +22,3 @@ def save_session(request, payload: SessionPayload):
         session.events.extend(payload.events)
         session.save()
     return {"status": "success"}
-
-
-@api.get("/replay-session/{session_id}")
-def replay_session(request, session_id: str):
-    session = UserSession.objects.get(session_id=session_id)
-    return JsonResponse({"events": session})

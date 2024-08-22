@@ -3,7 +3,6 @@
     <thead>
     <tr class="w-full bg-gray-800 text-white">
         <th class="py-2 px-4 border-b">Session ID</th>
-        <th class="py-2 px-4 border-b">User ID</th>
         <th class="py-2 px-4 border-b">Date</th>
         <th class="py-2 px-4 border-b">Actions</th>
     </tr>
@@ -13,8 +12,6 @@
         {% for session in sessions %}
             <tr class="hover:bg-gray-100">
                 <td class="py-2 px-4 border-b">{{ session.session_id }}</td>
-                <td class="py-2 px-4 border-b">{{ session.user_id }}</td>
-                {#                <td class="py-2 px-4 border-b">{{ session.created_at|convert_utc_to_local:user_tz }}</td>#}
                 <td class="py-2 px-4 border-b">{{ session.created_at }}</td>
                 <td class="py-2 px-4 border-b">
                     <div>

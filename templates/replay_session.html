@@ -7,7 +7,7 @@
             <script>
                 document.addEventListener('DOMContentLoaded', function () {
                     const events = JSON.parse('{{ session.get_events_json|escapejs }}');
-           
+
                     if (events.length > 0) {
                         new rrwebPlayer({
                             target: document.getElementById('rrweb-player'),
@@ -16,6 +16,7 @@
                                 width: 800,
                                 height: 600,
                                 autoPlay: true,
+                                skipInactive: true,
                             }
                         });
                     } else {
