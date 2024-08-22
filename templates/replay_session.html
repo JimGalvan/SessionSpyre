@@ -7,12 +7,27 @@
             <script>
                 document.addEventListener('DOMContentLoaded', function () {
                     const events = JSON.parse('{{ session.get_events_json|escapejs }}');
+                    const THRESHOLD = 2000; // In milliseconds, e.g., 5 seconds
+
+                    const adjustedEvents = events.map((event, index) => {
+                        if (index === 0) return event; // First event, no previous event to compare
+
+                        const prevEvent = events[index - 1];
+                        const timeDifference = event.timestamp - prevEvent.timestamp;
+
+                        if (timeDifference > THRESHOLD) {
+                            // Adjust the current event timestamp to fast forward over inactivity
+                            event.timestamp = prevEvent.timestamp + THRESHOLD;
+                        }
+
+                        return event;
+                    });
 
                     if (events.length > 0) {
                         new rrwebPlayer({
                             target: document.getElementById('rrweb-player'),
                             props: {
-                                events: events,
+                                events: adjustedEvents,
                                 width: 800,
                                 height: 600,
                                 autoPlay: true,
