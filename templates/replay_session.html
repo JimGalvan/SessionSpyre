@@ -5,45 +5,50 @@
             <h1>Replay Session {{ session.session_id }}</h1>
 
             {% if session.live %}
-                <p class="text-red-500">This session is currently live. Replay will be available after it ends.</p>
-            {% else %}
-                <div id="rrweb-player"></div>
-                <script>
-                    document.addEventListener('DOMContentLoaded', function () {
-                        const events = JSON.parse('{{ session.get_events_json|escapejs }}');
-                        const THRESHOLD = 5000; // In milliseconds, e.g., 5 seconds
+                <p class="text-yellow-500">This session is currently live. You are viewing the session in real-time.</p>
+            {% endif %}
 
-                        const adjustedEvents = events.map((event, index) => {
-                            if (index === 0) return event; // First event, no previous event to compare
+            <div id="rrweb-player" sandbox="allow-scripts"></div>
+            <script>
+                document.addEventListener('DOMContentLoaded', function () {
+                    let events = JSON.parse('{{ session.get_events_json|escapejs }}');
 
-                            const prevEvent = events[index - 1];
-                            const timeDifference = event.timestamp - prevEvent.timestamp;
-
-                            if (timeDifference > THRESHOLD) {
-                                // Adjust the current event timestamp to fast forward over inactivity
-                                event.timestamp = prevEvent.timestamp + THRESHOLD;
-                            }
-
-                            return event;
-                        });
-
-                        if (events.length > 0) {
-                            new rrwebPlayer({
-                                target: document.getElementById('rrweb-player'),
-                                props: {
-                                    events: adjustedEvents,
-                                    width: 800,
-                                    height: 600,
-                                    autoPlay: true,
-                                    skipInactive: true,
-                                }
-                            });
-                        } else {
-                            console.error('No valid events to replay');
+                    const rrwebPlayerInstance = new rrwebPlayer({
+                        target: document.getElementById('rrweb-player'),
+                        props: {
+                            events: events,
+                            width: 800,
+                            height: 600,
+                            autoPlay: true,
+                            skipInactive: true,
+                            liveMode: true,
                         }
                     });
-                </script>
-            {% endif %}
+
+                    // If the session is live, open a WebSocket to receive real-time updates
+                    {% if session.live %}
+                        const socket = new WebSocket(`ws://localhost:8000/ws/live-session/{{ session.session_id }}/`);
+                        console.log('Opening WebSocket connection to receive live events...');
+
+                        socket.onmessage = function (event) {
+                            const newEvent = JSON.parse(event.data);
+                            console.log('New event:', newEvent);
+                            events.push(newEvent);
+
+                            // Add the new event to the player
+                            try {
+                                rrwebPlayerInstance.addEvent(newEvent);
+                            } catch (e) {
+                                console.error('Error adding event:', e);
+                            }
+                        };
+
+                        socket.onclose = function () {
+                            console.log("WebSocket connection closed.");
+                        };
+                    {% endif %}
+                });
+            </script>
         </div>
     </div>
 {% endblock %}
