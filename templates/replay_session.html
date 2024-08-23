@@ -25,6 +25,12 @@
                         }
                     });
 
+                    // Start at the last event if the session is live
+                    if (events.length > 0) {
+                        const lastEvent = events[events.length - 1];
+                        rrwebPlayerInstance.play(lastEvent.timestamp);
+                    }
+
                     // If the session is live, open a WebSocket to receive real-time updates
                     {% if session.live %}
                         const socket = new WebSocket(`ws://localhost:8000/ws/live-session/{{ session.session_id }}/`);
@@ -32,15 +38,11 @@
 
                         socket.onmessage = function (event) {
                             const newEvent = JSON.parse(event.data);
-                            console.log('New event:', newEvent);
                             events.push(newEvent);
 
                             // Add the new event to the player
-                            try {
-                                rrwebPlayerInstance.addEvent(newEvent);
-                            } catch (e) {
-                                console.error('Error adding event:', e);
-                            }
+                            rrwebPlayerInstance.addEvent(newEvent);
+                            rrwebPlayerInstance.play(newEvent.timestamp);  // Move the player to the new event
                         };
 
                         socket.onclose = function () {
