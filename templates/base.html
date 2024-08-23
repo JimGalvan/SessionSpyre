@@ -16,7 +16,6 @@
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/rrweb-player@latest/dist/style.css">
     <script src="https://cdn.jsdelivr.net/npm/rrweb-player@latest/dist/index.js"></script>
     <script src="/static/timezone.js"></script>
-
     <style>
         [x-cloak] {
             display: none;
@@ -34,15 +33,6 @@
             flex: 1;
         }
     </style>
-{#    {% if user.is_authenticated %}#}
-{#        <script>#}
-{#            if (!sessionStorage.getItem('timezoneSet')) {#}
-{#                const script = document.createElement('script');#}
-{#                script.src = "{% static 'timezone.js' %}";#}
-{#                document.head.appendChild(script);#}
-{#            }#}
-{#        </script>#}
-{#    {% endif %}#}
 </head>
 {% include 'layout/navbar.html' %}
 <body class="bg-gray-100 dark:bg-gray-800 text-gray-900 dark:text-white">

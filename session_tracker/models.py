@@ -22,6 +22,7 @@ class UserSession(models.Model):
     session_id = models.CharField(max_length=255, unique=True)
     user_id = models.CharField(max_length=255)
     events = models.JSONField()
+    live = models.BooleanField(default=False)
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
 
@@ -35,6 +36,8 @@ class UserSession(models.Model):
         # models.Index(fields=['user_id', 'created_at']),
         # You can also add db_index=True on individual fields for performance optimization.
         # models.CharField(max_length=255, db_index=True)
+
+        ordering = ['-live', 'created_at']
 
     def __str__(self):
         return f"Session {self.session_id} for User {self.user_id}"

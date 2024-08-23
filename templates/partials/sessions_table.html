@@ -1,18 +1,48 @@
-{% load utility_tags %}
+<script>
+    document.addEventListener('DOMContentLoaded', function () {
+        const liveStatusSocket = new WebSocket('ws://localhost:8000/ws/live-status/');
+
+        liveStatusSocket.onmessage = function (event) {
+            const data = JSON.parse(event.data);
+            const sessionRow = document.querySelector(`#${data.session_id}`);
+            console.log("Live status message session ID: " + data.session_id);
+            console.log("Session row: " + sessionRow);
+
+            if (sessionRow) {
+                const statusCell = sessionRow.querySelector('.live-status');
+                if (data.live) {
+                    console.log('Live');
+                    statusCell.innerHTML = '<span class="text-green-500">Live</span>';
+                } else {
+                    console.log('Not Live');
+                    statusCell.innerHTML = '<span class="text-gray-500">Not Live</span>';
+                }
+            }
+        };
+    });
+</script>
 <table id="sessions" class="min-w-full bg-white border border-gray-200">
     <thead>
     <tr class="w-full bg-gray-800 text-white">
         <th class="py-2 px-4 border-b">Session ID</th>
         <th class="py-2 px-4 border-b">Date</th>
+        <th class="py-2 px-4 border-b">Live Status</th> <!-- New Column -->
         <th class="py-2 px-4 border-b">Actions</th>
     </tr>
     </thead>
     <tbody>
     {% if sessions %}
         {% for session in sessions %}
-            <tr class="hover:bg-gray-100">
+            <tr id="{{ session.session_id }}" class="hover:bg-gray-100">
                 <td class="py-2 px-4 border-b">{{ session.session_id }}</td>
                 <td class="py-2 px-4 border-b">{{ session.created_at }}</td>
+                <td class="py-2 px-4 border-b">
+                    {% if session.live %}
+                        <span class="live-status text-green-500">Live</span>
+                    {% else %}
+                        <span class="live-status text-gray-500">Not Live</span>
+                    {% endif %}
+                </td>
                 <td class="py-2 px-4 border-b">
                     <div>
                         <button type="button"

@@ -3,42 +3,47 @@
     <div>
         <div class="container">
             <h1>Replay Session {{ session.session_id }}</h1>
-            <div id="rrweb-player"></div>
-            <script>
-                document.addEventListener('DOMContentLoaded', function () {
-                    const events = JSON.parse('{{ session.get_events_json|escapejs }}');
-                    const THRESHOLD = 2000; // In milliseconds, e.g., 5 seconds
 
-                    const adjustedEvents = events.map((event, index) => {
-                        if (index === 0) return event; // First event, no previous event to compare
+            {% if session.live %}
+                <p class="text-red-500">This session is currently live. Replay will be available after it ends.</p>
+            {% else %}
+                <div id="rrweb-player"></div>
+                <script>
+                    document.addEventListener('DOMContentLoaded', function () {
+                        const events = JSON.parse('{{ session.get_events_json|escapejs }}');
+                        const THRESHOLD = 5000; // In milliseconds, e.g., 5 seconds
 
-                        const prevEvent = events[index - 1];
-                        const timeDifference = event.timestamp - prevEvent.timestamp;
+                        const adjustedEvents = events.map((event, index) => {
+                            if (index === 0) return event; // First event, no previous event to compare
 
-                        if (timeDifference > THRESHOLD) {
-                            // Adjust the current event timestamp to fast forward over inactivity
-                            event.timestamp = prevEvent.timestamp + THRESHOLD;
-                        }
+                            const prevEvent = events[index - 1];
+                            const timeDifference = event.timestamp - prevEvent.timestamp;
 
-                        return event;
-                    });
-
-                    if (events.length > 0) {
-                        new rrwebPlayer({
-                            target: document.getElementById('rrweb-player'),
-                            props: {
-                                events: adjustedEvents,
-                                width: 800,
-                                height: 600,
-                                autoPlay: true,
-                                skipInactive: true,
+                            if (timeDifference > THRESHOLD) {
+                                // Adjust the current event timestamp to fast forward over inactivity
+                                event.timestamp = prevEvent.timestamp + THRESHOLD;
                             }
+
+                            return event;
                         });
-                    } else {
-                        console.error('No valid events to replay');
-                    }
-                });
-            </script>
+
+                        if (events.length > 0) {
+                            new rrwebPlayer({
+                                target: document.getElementById('rrweb-player'),
+                                props: {
+                                    events: adjustedEvents,
+                                    width: 800,
+                                    height: 600,
+                                    autoPlay: true,
+                                    skipInactive: true,
+                                }
+                            });
+                        } else {
+                            console.error('No valid events to replay');
+                        }
+                    });
+                </script>
+            {% endif %}
         </div>
     </div>
 {% endblock %}
