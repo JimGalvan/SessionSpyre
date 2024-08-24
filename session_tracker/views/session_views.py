@@ -11,7 +11,7 @@ def sessions_view(request):
 
 def replay_session(request, session_id):
     session: UserSession = UserSession.objects.get(session_id=session_id)
-    return render(request, 'replay_session.html', {'session': session})
+    return render(request, 'session_viewer.html', {'session': session})
 
 
 def delete_session(request, session_id):
@@ -19,12 +19,10 @@ def delete_session(request, session_id):
     session.delete()
     user_id: str = request.user.id
     sessions: list = UserSession.objects.filter(user_id=user_id)
-    return render(request, 'partials/sessions_table.html', {'sessions': sessions})
+    return render(request, 'sessions_list.html', {'sessions': sessions})
 
 
 def sessions_list(request):
     user_id: str = request.user.id
     sessions: list = UserSession.objects.filter(user_id=user_id)
-    # if request.htmx:
-    #     return render(request, 'partials/sessions_table.html', {'sessions': sessions})
-    return render(request, 'partials/sessions_table.html', {'sessions': sessions})
+    return render(request, 'sessions_list.html', {'sessions': sessions})

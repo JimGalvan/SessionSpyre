@@ -2,6 +2,78 @@
 {% block content %}
     <div id="session-container">
         <h1 class="text-2xl font-bold mb-3 text-center">Recorded Sessions</h1>
-        {% include 'partials/sessions_table.html' %}
+        <div class="flex h-screen">
+            <!-- Sidebar with Sessions List as Cards -->
+            <div class="w-1/4 bg-gray-100 p-4 border-r border-gray-200 overflow-y-auto">
+                <h2 class="text-lg font-semibold mb-4">Sessions</h2>
+                <div id="sessions-container"
+                     hx-get="{% url 'sessions_list' %}"
+                     hx-trigger="every 10s, session-created"
+                     hx-target="#sessions-container"
+                     hx-swap="innerHTML">
+                    {% include 'sessions_list.html' %}
+                </div>
+            </div>
+
+            <!-- Main Viewer Area -->
+            <div class="w-3/4 p-4" id="viewer-container">
+                <div class="flex items-center justify-center h-full text-gray-500">
+                    <p>Select a session from the sidebar to view details.</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- JavaScript for WebSocket and HTMX Handling -->
+        <script>
+            document.addEventListener('DOMContentLoaded', function () {
+                // WebSocket for live status updates
+                const liveStatusSocket = new WebSocket('ws://localhost:8000/ws/live-status/');
+                const sessionUpdatesSocket = new WebSocket('ws://localhost:8000/ws/session-updates/');
+
+                const updateLiveStatus = function (liveStatusSocket) {
+                    // Handle live status updates
+                    liveStatusSocket.onmessage = function (event) {
+                        const data = JSON.parse(event.data);
+                        const sessionRow = document.querySelector(`#${data.session_id}`);
+
+                        if (sessionRow) {
+                            console.log("Session row: " + sessionRow);
+                            const statusCell = sessionRow.querySelector('.live-status');
+                            if (data.live) {
+                                console.log('Live');
+                                statusCell.innerHTML = '<span class="text-green-500">Live</span>';
+                            } else {
+                                console.log('Not Live');
+                                statusCell.innerHTML = '<span class="text-gray-500">Not Live</span>';
+                            }
+                        }
+                    };
+                };
+
+                // Handle new session creation
+                sessionUpdatesSocket.onmessage = function (event) {
+                    const data = JSON.parse(event.data);
+
+                    if (data.action === 'session-created') {
+                        htmx.trigger('#sessions-container', 'session-created');
+                        document.addEventListener('htmx:afterSettle', function (event) {
+                            if (event.detail.target.id === 'sessions-container') {
+                                updateLiveStatus(liveStatusSocket);
+                            }
+                        });
+                    }
+                };
+
+                updateLiveStatus(liveStatusSocket);
+
+                liveStatusSocket.onclose = function () {
+                    console.log("WebSocket connection for live status closed.");
+                };
+
+                sessionUpdatesSocket.onclose = function () {
+                    console.log("WebSocket connection for session updates closed.");
+                };
+            });
+        </script>
     </div>
 {% endblock %}
