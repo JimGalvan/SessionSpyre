@@ -1,23 +1,24 @@
-<div id="replay-session-containers">
+<div id="replay-session-containers" class="h-full w-full">
     <h1>Replay Session {{ session.session_id }}</h1>
 
     {% if session.live %}
         <p class="text-yellow-500">This session is currently live. You are viewing the session in real-time.</p>
     {% endif %}
-
-    <div id="rrweb-player" class="my-4" sandbox="allow-scripts"></div>
+    <!-- Make sure this container takes full available space -->
+    <div id="rrweb-player" class="my-4 h-full w-full"></div>
 
     <script>
         // Define a function to initialize the player
         function initializePlayer() {
             let events = JSON.parse('{{ session.get_events_json|escapejs }}');
-
+            const playerContainer = document.getElementById('rrweb-player');
+            
             const rrwebPlayerInstance = new rrwebPlayer({
-                target: document.getElementById('rrweb-player'),
+                target: playerContainer,
                 props: {
                     events: events,
-                    width: 800,
-                    height: 600,
+                    width: playerContainer.clientWidth,  // Use the container's width
+                    height: playerContainer.clientHeight - (playerContainer.clientHeight / 6), // Use the container's height
                     speed: 2,
                     autoPlay: true,
                     skipInactive: false,
@@ -49,6 +50,14 @@
                     console.log("WebSocket connection closed.");
                 };
             {% endif %}
+
+            // Adjust player size on window resize
+            window.addEventListener('resize', function () {
+                rrwebPlayerInstance.setProps({
+                    width: playerContainer.clientWidth,
+                    height: playerContainer.clientHeight
+                });
+            });
         }
 
         // Use HTMX 'htmx:afterSwap' event to initialize the player
