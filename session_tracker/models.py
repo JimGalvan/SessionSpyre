@@ -37,7 +37,7 @@ class UserSession(models.Model):
         # You can also add db_index=True on individual fields for performance optimization.
         # models.CharField(max_length=255, db_index=True)
 
-        ordering = ['-live', 'created_at']
+        ordering = ['-live', '-created_at']
 
     def __str__(self):
         return f"Session {self.session_id} for User {self.user_id}"

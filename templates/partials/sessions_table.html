@@ -1,26 +1,59 @@
 <script>
     document.addEventListener('DOMContentLoaded', function () {
-        const liveStatusSocket = new WebSocket('ws://localhost:8000/ws/live-status/');
+        
+        const updateLiveStatus = function (liveStatusSocket) {
+            // Handle live status updates
+            liveStatusSocket.onmessage = function (event) {
+                const data = JSON.parse(event.data);
+                const sessionRow = document.querySelector(`#${data.session_id}`);
 
-        liveStatusSocket.onmessage = function (event) {
-            const data = JSON.parse(event.data);
-            const sessionRow = document.querySelector(`#${data.session_id}`);
-            console.log("Live status message session ID: " + data.session_id);
-            console.log("Session row: " + sessionRow);
-
-            if (sessionRow) {
-                const statusCell = sessionRow.querySelector('.live-status');
-                if (data.live) {
-                    console.log('Live');
-                    statusCell.innerHTML = '<span class="text-green-500">Live</span>';
-                } else {
-                    console.log('Not Live');
-                    statusCell.innerHTML = '<span class="text-gray-500">Not Live</span>';
+                if (sessionRow) {
+                    console.log("Session row: " + sessionRow);
+                    const statusCell = sessionRow.querySelector('.live-status');
+                    if (data.live) {
+                        console.log('Live');
+                        statusCell.innerHTML = '<span class="text-green-500">Live</span>';
+                    } else {
+                        console.log('Not Live');
+                        statusCell.innerHTML = '<span class="text-gray-500">Not Live</span>';
+                    }
                 }
+            };
+        };
+
+        // WebSocket for live status updates
+        const liveStatusSocket = new WebSocket('ws://localhost:8000/ws/live-status/');
+        const sessionUpdatesSocket = new WebSocket('ws://localhost:8000/ws/session-updates/');
+
+        // Handle new session creation
+        sessionUpdatesSocket.onmessage = function (event) {
+            const data = JSON.parse(event.data);
+
+            if (data.action === 'session-created') {
+                htmx.trigger('#sessions-container', 'session-created');
+                document.addEventListener('htmx:afterSettle', function (event) {
+                    if (event.detail.target.id === 'sessions-container') {
+                        updateLiveStatus(liveStatusSocket);
+                    }
+                });
             }
+        };
+        updateLiveStatus(liveStatusSocket);
+
+        liveStatusSocket.onclose = function () {
+            console.log("WebSocket connection for live status closed.");
+        };
+
+        sessionUpdatesSocket.onclose = function () {
+            console.log("WebSocket connection for session updates closed.");
         };
     });
 </script>
+<div id="sessions-container"
+     hx-get="{% url 'sessions_list' %}"
+     hx-trigger="every 10s session-created"
+     hx-target="#sessions-container"
+     hx-swap="innerHTML">
 <table id="sessions" class="min-w-full bg-white border border-gray-200">
     <thead>
     <tr class="w-full bg-gray-800 text-white">
@@ -65,3 +98,4 @@
     {% endif %}
     </tbody>
 </table>
+</div>

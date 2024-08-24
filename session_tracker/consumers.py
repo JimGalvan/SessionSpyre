@@ -10,7 +10,6 @@ logger = logging.getLogger(__name__)
 
 
 class SessionConsumer(AsyncWebsocketConsumer):
-
     def __init__(self, *args, **kwargs):
         super().__init__(args, kwargs)
         self.group_name = None
@@ -37,6 +36,9 @@ class SessionConsumer(AsyncWebsocketConsumer):
 
         # Notify live status change if applicable
         await self.notify_live_status(True)
+
+        # Notify the frontend about the new session creation
+        await self.notify_session_creation()
 
     async def disconnect(self, close_code):
         # Logging disconnection
@@ -95,6 +97,45 @@ class SessionConsumer(AsyncWebsocketConsumer):
                 "live": is_live
             }
         )
+
+    async def notify_session_creation(self):
+        """Notify the session updates group about the creation of a new session."""
+        logger.info(f"SessionConsumer: Notifying about new session creation for session {self.session_id}")
+        await self.channel_layer.group_send(
+            "session_updates",
+            {
+                "type": "session_created",
+                "session_id": self.session_id
+            }
+        )
+
+
+class SessionUpdatesConsumer(AsyncWebsocketConsumer):
+    async def connect(self):
+        logger.info("SessionUpdatesConsumer: Connecting to session updates")
+
+        await self.channel_layer.group_add(
+            "session_updates",
+            self.channel_name
+        )
+
+        await self.accept()
+
+    async def disconnect(self, close_code):
+        logger.info(f"SessionUpdatesConsumer: Disconnecting from session updates with close code {close_code}")
+
+        await self.channel_layer.group_discard(
+            "session_updates",
+            self.channel_name
+        )
+
+    async def session_created(self, event):
+        logger.info(f"SessionUpdatesConsumer: New session created with session_id {event['session_id']}")
+
+        await self.send(text_data=json.dumps({
+            'action': 'session-created',
+            'session_id': event['session_id']
+        }))
 
 
 class LiveStatusConsumer(AsyncWebsocketConsumer):
