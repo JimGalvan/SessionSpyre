@@ -13,7 +13,7 @@
                      hx-ext="alpine-morph"
                      hx-swap="morph"
                 >
-                    {% include 'sessions_list.html' %}
+                    {% include 'session_list.html' %}
                 </div>
             </div>
 
@@ -75,13 +75,6 @@
                 sessionUpdatesSocket.onclose = function () {
                     console.log("WebSocket connection for session updates closed.");
                 };
-            });
-
-            document.body.addEventListener('htmx:afterSwap', function handleAfterSwap(event) {
-                if (event.detail.target.id === 'sessions_list') {
-
-                    document.body.removeEventListener('htmx:afterSwap', handleAfterSwap);
-                }
             });
         </script>
     </div>

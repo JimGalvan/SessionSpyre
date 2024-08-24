@@ -19,10 +19,10 @@ def delete_session(request, session_id):
     session.delete()
     user_id: str = request.user.id
     sessions: list = UserSession.objects.filter(user_id=user_id)
-    return render(request, 'sessions_list.html', {'sessions': sessions})
+    return render(request, 'session_list.html', {'sessions': sessions})
 
 
 def sessions_list(request):
     user_id: str = request.user.id
     sessions: list = UserSession.objects.filter(user_id=user_id)
-    return render(request, 'sessions_list.html', {'sessions': sessions})
+    return render(request, 'session_list.html', {'sessions': sessions})
