@@ -1,6 +1,54 @@
+<div class="flex h-screen">
+    <!-- Sidebar with Sessions List as Cards -->
+    <div class="w-1/4 bg-gray-100 p-4 border-r border-gray-200 overflow-y-auto">
+        <h2 class="text-lg font-semibold mb-4">Sessions</h2>
+        <div id="sessions-container"
+             hx-get="{% url 'sessions_list' %}"
+             hx-trigger="session-created"
+             hx-target="#sessions-container"
+             hx-swap="innerHTML">
+            {% if sessions %}
+                <div class="space-y-4">
+                    {% for session in sessions %}
+                        <div id="{{ session.session_id }}"
+                             class="cursor-pointer p-4 bg-white rounded shadow hover:bg-gray-100 transition"
+                             hx-get="{% url 'replay_session' session.session_id %}"
+                             hx-target="#viewer-container"
+                             hx-swap="innerHTML">
+                            <h3 class="text-md font-semibold">Session ID: {{ session.session_id }}</h3>
+                            <p class="text-sm text-gray-600">Date: {{ session.created_at }}</p>
+                            <p class="text-sm">
+                                Status:
+                                {% if session.live %}
+                                    <span class="live-status text-green-500">Live</span>
+                                {% else %}
+                                    <span class="live-status text-gray-500">Not Live</span>
+                                {% endif %}
+                            </p>
+                        </div>
+                    {% endfor %}
+                </div>
+            {% else %}
+                <p class="text-gray-500">No sessions found.</p>
+            {% endif %}
+        </div>
+    </div>
+
+    <!-- Main Viewer Area -->
+    <div class="w-3/4 p-4" id="viewer-container">
+        <div class="flex items-center justify-center h-full text-gray-500">
+            <p>Select a session from the sidebar to view details.</p>
+        </div>
+    </div>
+</div>
+
+<!-- JavaScript for WebSocket and HTMX Handling -->
 <script>
     document.addEventListener('DOMContentLoaded', function () {
-        
+        // WebSocket for live status updates
+        const liveStatusSocket = new WebSocket('ws://localhost:8000/ws/live-status/');
+        const sessionUpdatesSocket = new WebSocket('ws://localhost:8000/ws/session-updates/');
+
         const updateLiveStatus = function (liveStatusSocket) {
             // Handle live status updates
             liveStatusSocket.onmessage = function (event) {
@@ -21,10 +69,6 @@
             };
         };
 
-        // WebSocket for live status updates
-        const liveStatusSocket = new WebSocket('ws://localhost:8000/ws/live-status/');
-        const sessionUpdatesSocket = new WebSocket('ws://localhost:8000/ws/session-updates/');
-
         // Handle new session creation
         sessionUpdatesSocket.onmessage = function (event) {
             const data = JSON.parse(event.data);
@@ -38,6 +82,7 @@
                 });
             }
         };
+
         updateLiveStatus(liveStatusSocket);
 
         liveStatusSocket.onclose = function () {
@@ -49,53 +94,3 @@
         };
     });
 </script>
-<div id="sessions-container"
-     hx-get="{% url 'sessions_list' %}"
-     hx-trigger="every 10s session-created"
-     hx-target="#sessions-container"
-     hx-swap="innerHTML">
-<table id="sessions" class="min-w-full bg-white border border-gray-200">
-    <thead>
-    <tr class="w-full bg-gray-800 text-white">
-        <th class="py-2 px-4 border-b">Session ID</th>
-        <th class="py-2 px-4 border-b">Date</th>
-        <th class="py-2 px-4 border-b">Live Status</th> <!-- New Column -->
-        <th class="py-2 px-4 border-b">Actions</th>
-    </tr>
-    </thead>
-    <tbody>
-    {% if sessions %}
-        {% for session in sessions %}
-            <tr id="{{ session.session_id }}" class="hover:bg-gray-100">
-                <td class="py-2 px-4 border-b">{{ session.session_id }}</td>
-                <td class="py-2 px-4 border-b">{{ session.created_at }}</td>
-                <td class="py-2 px-4 border-b">
-                    {% if session.live %}
-                        <span class="live-status text-green-500">Live</span>
-                    {% else %}
-                        <span class="live-status text-gray-500">Not Live</span>
-                    {% endif %}
-                </td>
-                <td class="py-2 px-4 border-b">
-                    <div>
-                        <button type="button"
-                                hx-headers='{"X-CSRFToken": "{{ csrf_token }}"}'
-                                hx-delete="{% url 'delete_session' session.session_id %}"
-                                hx-target="#sessions"
-                                hx-trigger="click"
-                                class="text-red-500 hover:underline">Delete
-                        </button>
-                        <a href="{% url 'replay_session' session.session_id %}"
-                           class="text-blue-500 hover:underline">Replay</a>
-                    </div>
-                </td>
-            </tr>
-        {% endfor %}
-    {% else %}
-        <tr>
-            <td class="py-2 px-4 border-b" colspan="4">No sessions found.</td>
-        </tr>
-    {% endif %}
-    </tbody>
-</table>
-</div>

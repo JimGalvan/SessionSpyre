@@ -1,18 +1,6 @@
 {% extends 'base.html' %}
-<script>
-    const socket = new WebSocket('ws://' + window.location.host + '/ws/live-status/');
-    console.log('socket: ', socket);
-
-    socket.onmessage = function (event) {
-        const data = JSON.parse(event.data);
-        console.log('Message from server:', data);
-        if (data.refresh) {
-            location.reload(); // Refresh the page
-        }
-    };
-</script>
 {% block content %}
-    <div class="container">
+    <div id="session-container">
         <h1 class="text-2xl font-bold mb-3 text-center">Recorded Sessions</h1>
         {% include 'partials/sessions_table.html' %}
     </div>
