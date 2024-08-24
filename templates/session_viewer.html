@@ -53,10 +53,8 @@
 
             // Adjust player size on window resize
             window.addEventListener('resize', function () {
-                rrwebPlayerInstance.setProps({
-                    width: playerContainer.clientWidth,
-                    height: playerContainer.clientHeight
-                });
+                rrwebPlayerInstance.width = playerContainer.clientWidth;
+                rrwebPlayerInstance.height = playerContainer.clientHeight;
             });
         }
 

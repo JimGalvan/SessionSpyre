@@ -8,14 +8,22 @@
     <meta name="google-site-verification" content="QHoh-c9lof-BUFLelhQzLsCEZDmjloKDSZtigqhXNcE" />
     <title>Todo List</title>
     <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
-    <script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.x.x/dist/cdn.min.js"></script>
-    <script src="https://unpkg.com/@heroicons/vue@1.0.0/dist/outline.min.js"></script>
     <script src="https://unpkg.com/htmx.org@2.0.0"
             integrity="sha384-wS5l5IKJBvK6sPTKa2WZ1js3d947pvWXbPJ1OmWfEuxLgeHcEbjUUA5i9V5ZkpCw"
             crossorigin="anonymous"></script>
+    <script src="https://unpkg.com/htmx.org@latest/dist/ext/alpine-morph.js"></script>
+    <!-- Alpine Plugins -->
+    <script defer src="https://cdn.jsdelivr.net/npm/@alpinejs/morph@3.x.x/dist/cdn.min.js"></script>
+    <!-- Alpine Core -->
+    <script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.x.x/dist/cdn.min.js"></script>
+    <script src="https://unpkg.com/@heroicons/vue@1.0.0/dist/outline.min.js"></script>
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/rrweb-player@latest/dist/style.css">
     <script src="https://cdn.jsdelivr.net/npm/rrweb-player@latest/dist/index.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/loglevel/1.8.0/loglevel.min.js"></script>
     <script src="/static/timezone.js"></script>
+    <script>
+        log.setLevel('info');
+    </script>
     <style>
         [x-cloak] {
             display: none;

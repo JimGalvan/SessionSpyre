@@ -1,8 +1,11 @@
-{% if sessions %}
+<div id="sessions_list" x-data="{ selectedId: null, select(sessionId) { this.selectedId = sessionId; } }">
+    {% if sessions %}
     <div class="space-y-4">
         {% for session in sessions %}
             <div id="{{ session.session_id }}"
+                 x-on:click="select('{{ session.session_id }}')"
                  class="cursor-pointer p-4 bg-white rounded shadow hover:bg-gray-100 transition"
+                 :class="{ 'bg-gray-100': selectedId === '{{ session.session_id }}' }"
                  hx-get="{% url 'replay_session' session.session_id %}"
                  hx-target="#viewer-container"
                  hx-swap="innerHTML">
@@ -22,3 +25,4 @@
 {% else %}
     <p class="text-gray-500">No sessions found.</p>
 {% endif %}
+</div>
