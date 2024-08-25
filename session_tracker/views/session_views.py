@@ -11,7 +11,7 @@ def sessions_view(request):
 
 def replay_session(request, session_id):
     session: UserSession = UserSession.objects.get(session_id=session_id)
-    return render(request, 'session_viewer.html', {'session': session})
+    return render(request, 'session_player.html', {'session': session})
 
 
 def delete_session(request, session_id):

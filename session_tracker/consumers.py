@@ -1,5 +1,7 @@
+import asyncio
 import json
 import logging
+from datetime import datetime, timedelta
 
 from asgiref.sync import sync_to_async
 from channels.generic.websocket import AsyncWebsocketConsumer
@@ -10,8 +12,11 @@ logger = logging.getLogger(__name__)
 
 
 class SessionConsumer(AsyncWebsocketConsumer):
+    HEARTBEAT_TIMEOUT = 60  # Timeout in seconds for the heartbeat
+
     def __init__(self, *args, **kwargs):
         super().__init__(args, kwargs)
+        self.last_heartbeat = None
         self.group_name = None
         self.session_id = None
         self.live_session_group_postfix = "live_session"
@@ -19,6 +24,7 @@ class SessionConsumer(AsyncWebsocketConsumer):
     async def connect(self):
         self.session_id = self.scope['url_route']['kwargs']['session_id']
         self.group_name = f"session_{self.session_id}"
+        self.last_heartbeat = datetime.now()
 
         # Logging connection attempt
         logger.info(f"SessionConsumer: Connecting to session {self.session_id}")
@@ -40,6 +46,9 @@ class SessionConsumer(AsyncWebsocketConsumer):
         # Notify the frontend about the new session creation
         await self.notify_session_creation()
 
+        # Start the heartbeat check loop
+        self.start_heartbeat_check()
+
     async def disconnect(self, close_code):
         # Logging disconnection
         logger.info(f"SessionConsumer: Disconnecting from session {self.session_id} with close code {close_code}")
@@ -60,8 +69,16 @@ class SessionConsumer(AsyncWebsocketConsumer):
         logger.info(f"SessionConsumer: Received data in session {self.session_id}")
 
         text_data_json = json.loads(text_data)
-        events = text_data_json['events']
-        user_id = text_data_json['user_id']
+        action = text_data_json.get('action')
+
+        if action == 'heartbeat':
+            # Update the last heartbeat time
+            self.last_heartbeat = datetime.now()
+            logger.info(f"SessionConsumer: Received heartbeat for session {self.session_id}")
+            return
+
+        events = text_data_json.get('events')
+        user_id = text_data_json.get('user_id')
 
         session, created = await sync_to_async(UserSession.objects.get_or_create)(
             session_id=self.session_id,
@@ -108,6 +125,22 @@ class SessionConsumer(AsyncWebsocketConsumer):
                 "session_id": self.session_id
             }
         )
+
+    def start_heartbeat_check(self):
+        """Start a periodic task to check for heartbeat timeouts."""
+        self.check_heartbeat()
+
+    async def check_heartbeat(self):
+        """Periodically check if a heartbeat has been received recently."""
+        while True:
+            await asyncio.sleep(self.HEARTBEAT_TIMEOUT)
+            if datetime.now() - self.last_heartbeat > timedelta(seconds=self.HEARTBEAT_TIMEOUT):
+                logger.warning(
+                    f"SessionConsumer: Heartbeat timeout for session {self.session_id}. Marking as inactive.")
+                await self.set_session_live_status(False)
+                await self.notify_live_status(False)
+                await self.close()
+                break
 
 
 class SessionUpdatesConsumer(AsyncWebsocketConsumer):

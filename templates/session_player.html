@@ -1,9 +1,16 @@
-<div id="replay-session-containers" class="h-full w-full">
-    <h1>Replay Session {{ session.session_id }}</h1>
-
-    {% if session.live %}
-        <p class="text-yellow-500">This session is currently live. You are viewing the session in real-time.</p>
+<div class="h-full w-full p-4" style="position: relative; z-index: 10;">
+    <div class="flex">
+        <div class="flex items-center mb-4">
+            <div class="text-xl">Session:</div>
+            <div class="text-xl font-bold ml-2">{{ session.session_id }}</div>
+        </div>
+        {% if session.live %}
+            <div class="flex items-center space-x-2 ml-auto">
+                <div class="animate-ping h-3 w-3 bg-green-500 rounded-full"></div>
+                <p class="text-green-500">Live Session</p>
+            </div>
     {% endif %}
+    </div>
     <!-- Make sure this container takes full available space -->
     <div id="rrweb-player" class="my-4 h-full w-full"></div>
 
@@ -18,7 +25,7 @@
                 props: {
                     events: events,
                     width: playerContainer.clientWidth,  // Use the container's width
-                    height: playerContainer.clientHeight - (playerContainer.clientHeight / 5), // Use the container's height
+                    height: playerContainer.clientHeight - (playerContainer.clientHeight / 4), // Use the container's height
                     speed: 2,
                     autoPlay: true,
                     skipInactive: false,
