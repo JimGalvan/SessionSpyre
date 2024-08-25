@@ -1,4 +1,5 @@
-<div id="sessions_list" x-data="{ selectedId: null, select(sessionId) { this.selectedId = sessionId; } }">
+<div id="sessions_list"
+     x-data="{ selectedId: null, openMenuId: null, select(sessionId) { this.selectedId = sessionId; } }">
     {% if sessions %}
     <div class="space-y-4">
         {% for session in sessions %}
@@ -11,17 +12,18 @@
                  hx-swap="innerHTML">
                 <div class="flex justify-between items-start">
                     <h3 class="text-md font-semibold">Session ID: {{ session.session_id }}</h3>
-                    <div class="relative" x-data="{ open: false }">
-                        <button @click.stop="open = !open"
+                    <div class="relative" x-data>
+                        <button @click.stop="openMenuId = openMenuId === '{{ session.session_id }}' ? null : '{{ session.session_id }}'"
                                 class="text-gray-500 hover:text-gray-700 w-6 h-6 flex items-center justify-center rounded-full bg-gray-200">
                             &#x22EE; <!-- Vertical Ellipsis Icon -->
                         </button>
-                        <div x-cloak x-show="open" @click.outside="open = false"
-                        >
+                        <div x-cloak x-show="openMenuId === '{{ session.session_id }}'"
+                             @click.outside="openMenuId = null"
+                             style="z-index: 20"
+                             class="absolute p-2 left-full ml-2 w-32 bg-white border border-gray-300 rounded shadow-lg">
                             <div
                                     href="{% url 'delete_session' session.session_id %}"
-                                    style="z-index: 20"
-                                    class="absolute left-full px-4 py-2 bg-red-500 hover:bg-red-600 text-white border border-red-600 rounded shadow-lg">
+                                    class="p-1 px-2 bg-red-500 hover:bg-red-600 text-white border border-red-600 rounded shadow-lg">
                                 Delete
                             </div>
                         </div>
