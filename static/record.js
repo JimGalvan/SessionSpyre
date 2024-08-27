@@ -6,17 +6,22 @@
         if (parts.length === 2) return parts.pop().split(';').shift();
     }
 
-    // Utility function to set a cookie
-    function setCookie(name, value, days) {
-        const expires = new Date(Date.now() + days * 864e5).toUTCString();
+    // Utility function to set a cookie with a custom expiration time in hours
+    function setCookie(name, value, hours) {
+        const expires = new Date(Date.now() + hours * 60 * 60 * 1000).toUTCString();
         document.cookie = `${name}=${encodeURIComponent(value)}; expires=${expires}; path=/`;
+    }
+
+    // Utility function to delete a cookie
+    function deleteCookie(name) {
+        document.cookie = `${name}=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/;`;
     }
 
     // Check if a session cookie exists, if not, create one
     let sessionId = getCookie('recording_session_id');
     if (!sessionId) {
         sessionId = 'session_' + Math.random().toString(36).substr(2, 9);
-        setCookie('recording_session_id', sessionId, 1); // Cookie valid for 1 day
+        setCookie('recording_session_id', sessionId, 8); // Cookie valid for 8 hours
         console.log('New Session ID:', sessionId);
     } else {
         console.log('Existing Session ID:', sessionId);
@@ -80,6 +85,7 @@
 
     socket.onopen = function () {
         console.log("WebSocket connection opened");
+        startHeartbeat(); // Start sending heartbeat messages once the connection is open
     };
 
     socket.onmessage = function (event) {
@@ -88,6 +94,7 @@
 
     socket.onclose = function () {
         console.log("WebSocket connection closed");
+        stopHeartbeat(); // Stop sending heartbeats if the connection is closed
     };
 
     const stopRecording = rrweb.record({
@@ -100,8 +107,86 @@
                 }));
                 events = [];
             }
+            resetInactivityTimeout(); // Reset inactivity timeout on every event
         },
+        sampling: {
+            input: 'last',
+            mouseInteraction: {
+                MouseUp: false,
+                MouseDown: false,
+                Click: false,
+                ContextMenu: false,
+                DblClick: false,
+                Focus: false,
+                Blur: false,
+                TouchStart: false,
+                TouchEnd: false,
+            },
+        }
     });
+
+    // Inactivity detection logic
+    let inactivityTimeout;
+    let extendedInactivityTimeout;
+    const inactivityLimit = 300000; // 5 minutes for pausing recording
+    const extendedInactivityLimit = 1800000; // 30 minutes for terminating the session
+
+    function resetInactivityTimeout() {
+        clearTimeout(inactivityTimeout);
+        clearTimeout(extendedInactivityTimeout);
+
+        inactivityTimeout = setTimeout(() => {
+            console.log("User inactive. Pausing recording.");
+            rrweb.pause(); // Pause recording due to inactivity
+        }, inactivityLimit);
+
+        extendedInactivityTimeout = setTimeout(() => {
+            console.log("User inactive for 30 minutes. Terminating session.");
+            terminateSession();
+        }, extendedInactivityLimit);
+    }
+
+    function resumeRecordingOnActivity() {
+        rrweb.resume(); // Resume recording when user becomes active
+        console.log("User active. Resuming recording.");
+        resetInactivityTimeout(); // Reset inactivity timer on activity
+    }
+
+    function terminateSession() {
+        stopRecording();
+        deleteCookie('recording_session_id'); // Clear the session cookie
+        if (socket.readyState === WebSocket.OPEN) {
+            socket.close(); // Close the WebSocket connection
+        }
+        stopHeartbeat();
+    }
+
+    // Start listening for user activity to reset inactivity timer
+    document.addEventListener('mousemove', resumeRecordingOnActivity);
+    document.addEventListener('keydown', resumeRecordingOnActivity);
+    document.addEventListener('scroll', resumeRecordingOnActivity);
+
+    // Initialize inactivity timeout
+    resetInactivityTimeout();
+
+    // Heartbeat logic
+    let heartbeatInterval;
+
+    function startHeartbeat() {
+        heartbeatInterval = setInterval(() => {
+            if (socket.readyState === WebSocket.OPEN) {
+                socket.send(JSON.stringify({
+                    action: 'heartbeat',
+                    session_id: sessionId
+                }));
+                console.log('Sent heartbeat');
+            }
+        }, 5000);
+    }
+
+    function stopHeartbeat() {
+        clearInterval(heartbeatInterval);
+    }
 
     window.addEventListener('beforeunload', () => {
         if (events.length > 0) {
@@ -111,6 +196,7 @@
             }));
         }
         stopRecording();
+        stopHeartbeat(); // Stop heartbeat when unloading
         socket.close();
     });
 

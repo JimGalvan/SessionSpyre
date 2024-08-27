@@ -1,8 +1,10 @@
 import asyncio
 import json
 import logging
+import secrets
 from datetime import datetime, timedelta
 
+import pytz
 from asgiref.sync import sync_to_async
 from channels.generic.websocket import AsyncWebsocketConsumer
 
@@ -13,6 +15,7 @@ logger = logging.getLogger(__name__)
 
 class SessionConsumer(AsyncWebsocketConsumer):
     HEARTBEAT_TIMEOUT = 60  # Timeout in seconds for the heartbeat
+    SESSION_TIMEOUT = 30  # Timeout in minutes for the session
 
     def __init__(self, *args, **kwargs):
         super().__init__(args, kwargs)
@@ -20,6 +23,7 @@ class SessionConsumer(AsyncWebsocketConsumer):
         self.group_name = None
         self.session_id = None
         self.live_session_group_postfix = "live_session"
+        self.timezone = pytz.UTC
 
     async def connect(self):
         self.session_id = self.scope['url_route']['kwargs']['session_id']
@@ -80,16 +84,59 @@ class SessionConsumer(AsyncWebsocketConsumer):
         events = text_data_json.get('events')
         user_id = text_data_json.get('user_id')
 
+        # Fetch or create the session and check if it's been inactive for too long
         session, created = await sync_to_async(UserSession.objects.get_or_create)(
             session_id=self.session_id,
             defaults={'user_id': user_id, 'events': events}
         )
+
         if not created:
-            session.events.extend(events)
-            await sync_to_async(session.save)()
+            # Check if the session has been inactive for more than the threshold
+            updated_at_naive = session.updated_at.replace(tzinfo=None)
+            is_session_inactive: bool = datetime.now() - updated_at_naive > timedelta(minutes=self.SESSION_TIMEOUT)
 
-        logger.info(f"SessionConsumer: Sending live session event for session {self.session_id}")
+            if is_session_inactive:
+                # Mark the current session as ended
+                session.live = False
+                await sync_to_async(session.save)()
 
+                # Notify about the session ending
+                await self.notify_live_status(False)
+
+                logger.info(f"SessionConsumer: Session {self.session_id} ended due to inactivity.")
+
+                # Generate a new session ID
+                new_session_id = f"session_{secrets.token_urlsafe(16)}"
+                self.session_id = new_session_id
+                self.group_name = f"session_{self.session_id}"
+
+                # Create a new session for continued recording
+                new_session = await sync_to_async(UserSession.objects.create)(
+                    session_id=new_session_id,
+                    user_id=user_id,
+                    events=events,  # Start new session with current events
+                    live=True
+                )
+
+                # Join the new session group
+                await self.channel_layer.group_add(
+                    self.group_name,
+                    self.channel_name
+                )
+
+                # Notify the frontend about the new session creation
+                await self.notify_live_status(True)
+
+                logger.info(f"SessionConsumer: New session {self.session_id} started.")
+
+            else:
+                # If the session is still active, continue recording events
+                session.events.extend(events)
+                await sync_to_async(session.save)()
+        else:
+            logger.info(f"SessionConsumer: New session created with ID {self.session_id}")
+
+        # Send the event to all live session viewers
         await self.channel_layer.group_send(
             f"{self.group_name}_{self.live_session_group_postfix}",
             {

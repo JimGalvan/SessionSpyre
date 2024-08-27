@@ -18,7 +18,19 @@ def create_or_update_user_profile(sender, instance, created, **kwargs):
     instance.userprofile.save()
 
 
+class Site(models.Model):
+    user = models.ForeignKey(User, on_delete=models.CASCADE, related_name='sites')
+    name = models.CharField(max_length=255)
+    domain = models.CharField(max_length=255, unique=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    def __str__(self):
+        return self.name
+
+
 class UserSession(models.Model):
+    site = models.ForeignKey(Site, on_delete=models.CASCADE, related_name='sessions')
     session_id = models.CharField(max_length=255, unique=True)
     user_id = models.CharField(max_length=255)
     events = models.JSONField()

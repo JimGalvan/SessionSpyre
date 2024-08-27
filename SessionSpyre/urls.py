@@ -6,6 +6,7 @@ from django.urls import path
 from session_tracker.api import api
 from session_tracker.views import session_views as sessions_views
 from session_tracker.views import user_views as user_views
+from session_tracker.views.site_views import create_site, delete_site, list_sites, update_site
 
 urlpatterns = [
     path('', user_views.index, name='index'),
@@ -22,6 +23,10 @@ urlpatterns = [
     path('sessions_list/', sessions_views.sessions_list, name='sessions_list'),
     path('replay_session/<str:session_id>/', sessions_views.replay_session, name='replay_session'),
     path('delete_session/<str:session_id>/', sessions_views.delete_session, name='delete_session'),
+    path('sites/', list_sites, name='list_sites'),
+    path('sites/create/', create_site, name='create_site'),
+    path('sites/update/<int:site_id>/', update_site, name='update_site'),
+    path('sites/delete/<int:site_id>/', delete_site, name='delete_site'),
 ]
 
 if settings.DEBUG:

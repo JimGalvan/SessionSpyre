@@ -1,0 +1,44 @@
+<!-- templates/list_sites.html -->
+{% extends 'base.html' %}
+
+{% block content %}
+<div class="container mx-auto mt-10" x-data="{ selectedSite: null }">
+    <h1 class="text-2xl font-semibold text-center mb-6">Your Sites</h1>
+
+    <!-- Display messages -->
+    <div id="messages">
+        {% for message in messages %}
+            <div class="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded mb-4">
+                {{ message }}
+            </div>
+        {% endfor %}
+    </div>
+
+    <!-- Button to add a new site -->
+    <div class="mb-4 flex justify-end">
+        <button hx-get="{% url 'create_site' %}" hx-target="#site-form" hx-swap="innerHTML"
+                class="px-4 py-2 bg-indigo-600 text-white font-semibold rounded hover:bg-indigo-700">Add New Site</button>
+    </div>
+
+    <!-- List of existing sites -->
+    <div id="sites-list" class="grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-3">
+        {% for site in sites %}
+        <div class="p-4 bg-white shadow rounded hover:bg-gray-100 cursor-pointer" 
+             :class="{ 'bg-gray-100': selectedSite === {{ site.id }} }" 
+             @click="selectedSite = {{ site.id }}">
+            <h2 class="text-lg font-semibold">{{ site.name }}</h2>
+            <p class="text-gray-500">{{ site.domain }}</p>
+            <div class="mt-4">
+                <button hx-get="{% url 'update_site' site.id %}" hx-target="#site-form" hx-swap="innerHTML"
+                        class="text-indigo-600 hover:text-indigo-800">Edit</button>
+                <button hx-delete="{% url 'delete_site' site.id %}" hx-target="#sites-list" hx-swap="innerHTML"
+                        class="text-red-600 hover:text-red-800 ml-4">Delete</button>
+            </div>
+        </div>
+        {% endfor %}
+    </div>
+
+    <!-- Placeholder for HTMX form -->
+    <div id="site-form" class="mt-6"></div>
+</div>
+{% endblock %}
