@@ -5,7 +5,7 @@
             <div class="text-xl font-bold ml-2">{{ session.session_id }}</div>
         </div>
         {% if session.live %}
-            <div class="flex items-center space-x-2 ml-auto">
+            <div id="live-session-indicator" class="flex items-center space-x-2 ml-auto">
                 <div class="animate-ping h-3 w-3 bg-green-500 rounded-full"></div>
                 <p class="text-green-500">Live Session</p>
             </div>
