@@ -1,4 +1,14 @@
+<script>
+    function removePlayer() {
+        const playerContainer = document.getElementById('rrweb-player');
+        if (playerContainer) {
+            playerContainer.remove();
+            location.reload();
+        }
+    }
+</script>
 <div id="{{ session.session_id }}"
+     x-data="{ showConfirmModal: false }"
      x-on:click="select('{{ session.session_id }}')"
      class="cursor-pointer p-4 bg-white rounded shadow hover:bg-gray-100 transition"
      :class="{ 'bg-gray-100': selectedId === '{{ session.session_id }}' }"
@@ -8,12 +18,13 @@
     <div>
         <div class="flex justify-between items-start">
             <h3 class="text-md font-semibold">ID: {{ session.session_id }}</h3>
-            <div @click.stop="window.location.href='{% url 'delete_session' session.session_id %}'"
+            <div x-on:click="showConfirmModal = true"
                  class="bg-red-400 text-white text-sm rounded p-2 py-1 flex items-center justify-center hover:bg-red-500 transition duration-300 ease-in-out">
                 Delete
             </div>
-
-
+            <template x-if="showConfirmModal">
+                {% include 'elements/confirm_delete_session_modal.html' %}
+            </template>
         </div>
         <p class="text-sm text-gray-600">Date: {{ session.created_at }}</p>
         <p class="text-sm">
