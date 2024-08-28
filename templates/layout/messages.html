@@ -1,0 +1,25 @@
+<script>
+    document.addEventListener('htmx:afterRequest', function () {
+        // Get all message elements
+        var messages = document.querySelectorAll('#messages .message');
+        messages.forEach(function (message) {
+            // Set a timeout to hide each message after 5 seconds
+            setTimeout(function () {
+                message.style.display = 'none';
+            }, 5000);
+        });
+    });
+</script>
+<div id="messages">
+    {% for message in messages %}
+        {% if message.level == DEFAULT_MESSAGE_LEVELS.SUCCESS %}
+            <div class="message bg-green-100 border border-green-400 text-green-700 px-4 py-3 rounded mb-4">
+                {{ message }}
+            </div>
+        {% else %}
+            <div class="message bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded mb-4">s
+                {{ message }}
+            </div>
+        {% endif %}
+    {% endfor %}
+</div>

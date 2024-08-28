@@ -6,19 +6,26 @@ from django.urls import reverse
 from session_tracker.models import Site
 
 
+@login_required()
+def sites_view(request):
+    sites = Site.objects.filter(user=request.user)
+    return render(request, 'sites/sites.html', {'sites': sites})
+
+
 @login_required
 def list_sites(request):
     sites = Site.objects.filter(user=request.user)
-    return render(request, 'sessions/list_sites.html', {'sites': sites})
+    return render(request, 'sites/list_sites.html', {'sites': sites})
 
-
-# views.py (excerpt)
 
 @login_required
 def create_site(request):
     if request.method == 'POST':
         name = request.POST.get('name')
         domain = request.POST.get('domain')
+
+        if domain is None or domain == '':
+            domain = ""
 
         # Check if the user has reached the site limit
         if Site.objects.filter(user=request.user).count() >= 3:
@@ -54,7 +61,7 @@ def update_site(request, site_id):
 @login_required
 def delete_site(request, site_id):
     site = get_object_or_404(Site, id=site_id, user=request.user)
-    if request.method == 'POST':
+    if request.method == 'DELETE':
         site.delete()
         messages.success(request, "Site deleted successfully!")
         return redirect(reverse('list_sites'))

@@ -1,7 +1,7 @@
-<!-- templates/create_site.html -->
+{% include 'layout/messages.html' %}
 <div class="w-full max-w-md mx-auto bg-white shadow-lg rounded-lg p-8 mt-4">
     <h1 class="text-2xl font-semibold text-center mb-6">Create New Site</h1>
-    <form method="post" hx-post="{% url 'create_site' %}" hx-target="#sites-list" hx-swap="innerHTML">
+    <form method="post" hx-post="{% url 'create_site' %}" hx-target="#list-sites-container" hx-swap="innerHTML">
         {% csrf_token %}
         <div>
             <label for="name" class="block text-sm font-medium text-gray-700">Site Name</label>
