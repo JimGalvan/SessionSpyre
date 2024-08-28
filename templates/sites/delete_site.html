@@ -6,7 +6,7 @@
         undone.</p>
     <form method="post" hx-delete="{% url 'delete_site' site.id %}" hx-target="#list-sites-container" hx-swap="innerHTML">
         {% csrf_token %}
-        <div class="flex justify-between">
+        <div class="mt-6 flex justify-end space-x-2">
             <button type="submit" class="px-4 py-2 bg-red-600 text-white font-semibold rounded hover:bg-red-700">
                 Delete
             </button>
