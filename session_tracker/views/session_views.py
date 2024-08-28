@@ -7,7 +7,7 @@ def sessions_view(request, site_id):
     user_id: str = request.user.id
     site: Site = Site.objects.get(id=site_id)
     sessions: list = UserSession.objects.filter(user_id=user_id, site=site)
-    return render(request, 'sessions/sessions.html', {'sessions': sessions})
+    return render(request, 'sessions/sessions.html', {'site': site, 'sessions': sessions})
 
 
 def replay_session(request, session_id):

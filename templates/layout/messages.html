@@ -10,6 +10,18 @@
         });
     });
 </script>
+<style>
+    .message {
+        font-size: 0.875rem; /* Smaller font size */
+        max-width: 300px; /* Limit the width */
+        margin: 0 auto; /* Center horizontally */
+    }
+    #messages {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+    }
+</style>
 <div id="messages">
     {% for message in messages %}
         {% if message.level == DEFAULT_MESSAGE_LEVELS.SUCCESS %}
