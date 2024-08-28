@@ -4,38 +4,37 @@
 {% block content %}
     <div class="flex justify-center">
         <div class="w-full max-w-md">
-            <p class="text-2xl font-semibold text-gray-800 mb-6">Register</p>
-            <div class="border-t border-gray-200"></div>
+            <p class="text-2xl font-semibold text-white mb-6">Register</p>
+            <div class="border-t border-gray-600"></div>
             <form method="POST" action="{% url 'register' %}" autocomplete='off' class="mt-4">
                 {% csrf_token %}
                 <div class="mb-4">
-                    <label class="block text-gray-700 text-sm font-bold mb-2"
+                    <label class="block text-gray-300 text-sm font-bold mb-2"
                            for="username">{{ form.username.label }}</label>
                     {{ form.username.errors }}
-                    {% render_field form.username class="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline" hx-post="/check_username/" hx-swap="outerhtml" hx-trigger="keyup changed" hx-target="#username-error" %}
+                    {% render_field form.username class="shadow appearance-none border border-gray-500 rounded w-full py-2 px-3 bg-gray-700 text-white leading-tight focus:outline-none focus:ring-indigo-500 focus:border-indigo-500" hx-post="/check_username/" hx-swap="outerhtml" hx-trigger="keyup changed" hx-target="#username-error" %}
                     <div id="username-error" class="text-red-500 text-xs italic"></div>
                 </div>
                 <div class="mb-4">
-                    <label class="block text-gray-700 text-sm font-bold mb-2"
-                           for="email">{{ form.email.label }}</label>
+                    <label class="block text-gray-300 text-sm font-bold mb-2" for="email">{{ form.email.label }}</label>
                     {{ form.email.errors }}
-                    {% render_field form.email class="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline" %}
+                    {% render_field form.email class="shadow appearance-none border border-gray-500 rounded w-full py-2 px-3 bg-gray-700 text-white leading-tight focus:outline-none focus:ring-indigo-500 focus:border-indigo-500" %}
                 </div>
                 <div class="mb-4">
-                    <label class="block text-gray-700 text-sm font-bold mb-2"
+                    <label class="block text-gray-300 text-sm font-bold mb-2"
                            for="password1">{{ form.password1.label }}</label>
                     {{ form.password1.errors }}
-                    {% render_field form.password1 class="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline" %}
+                    {% render_field form.password1 class="shadow appearance-none border border-gray-500 rounded w-full py-2 px-3 bg-gray-700 text-white leading-tight focus:outline-none focus:ring-indigo-500 focus:border-indigo-500" %}
                 </div>
                 <div class="mb-6">
-                    <label class="block text-gray-700 text-sm font-bold mb-2"
+                    <label class="block text-gray-300 text-sm font-bold mb-2"
                            for="password2">{{ form.password2.label }}</label>
                     {{ form.password2.errors }}
-                    {% render_field form.password2 class="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline" %}
+                    {% render_field form.password2 class="shadow appearance-none border border-gray-500 rounded w-full py-2 px-3 bg-gray-700 text-white leading-tight focus:outline-none focus:ring-indigo-500 focus:border-indigo-500" %}
                 </div>
                 <div class="flex items-center justify-between">
                     <button type="submit"
-                            class="bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded focus:outline-none focus:shadow-outline">
+                            class="bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-2 px-4 rounded focus:outline-none focus:ring-2 focus:ring-indigo-500 shadow-md transition duration-150 ease-in-out">
                         Register
                     </button>
                 </div>

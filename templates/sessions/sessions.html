@@ -1,87 +1,88 @@
 <div id="session-container">
-    <h1 class="text-2xl font-bold mb-3 text-center">{{ site.name }} - Recorded Sessions</h1>
-        <div class="flex h-screen rounded shadow">
-            <!-- Sidebar with Sessions List as Cards -->
-            <div id="session-list-container" class="w-1/4 bg-gray-100 p-4 border-r border-gray-200 overflow-auto ">
-                <h2 class="text-lg font-semibold mb-4">Sessions</h2>
-                <div
-                     hx-get="{% url 'sessions_list' %}"
-                     hx-trigger="every 2s, session-created"
-                     hx-target="#sessions_list"
-                     hx-ext="alpine-morph"
-                     hx-swap="morph"
-                >
-                    {% include 'sessions/session_list.html' %}
-                </div>
-            </div>
-
-            <!-- Main Viewer Area -->
-            <div class="w-full h-full bg-gray-50" id="viewer-container">
-                <div class="flex items-center justify-center h-full text-gray-500">
-                    <p>Select a session from the sidebar to view details.</p>
-                </div>
+    <h1 class="text-2xl font-bold mb-3 text-center text-white">{{ site.name }} - Recorded Sessions</h1>
+    <div class="flex h-screen rounded-lg shadow-lg">
+        <!-- Sidebar with Sessions List as Cards -->
+        <div id="session-list-container"
+             class="w-1/4 bg-gray-800 text-white p-4 border-r border-gray-700 overflow-auto">
+            <h2 class="text-lg font-semibold mb-4">Sessions</h2>
+            <div
+                    hx-get="{% url 'sessions_list' %}"
+                    hx-trigger="every 2s, session-created"
+                    hx-target="#sessions_list"
+                    hx-ext="alpine-morph"
+                    hx-swap="morph"
+            >
+                {% include 'sessions/session_list.html' %}
             </div>
         </div>
 
-        <!-- JavaScript for WebSocket and HTMX Handling -->
-        <script>
-            document.addEventListener('DOMContentLoaded', function () {
-                // WebSocket for live status updates
-                const liveStatusSocket = new WebSocket('ws://localhost:8000/ws/live-status/');
-                const sessionUpdatesSocket = new WebSocket('ws://localhost:8000/ws/session-updates/');
+        <!-- Main Viewer Area -->
+        <div class="w-full h-full bg-gray-900 text-white" id="viewer-container">
+            <div class="flex items-center justify-center h-full text-gray-400">
+                <p>Select a session from the sidebar to view details.</p>
+            </div>
+        </div>
+    </div>
 
-                const updateLiveStatus = function (liveStatusSocket) {
-                    // Handle live status updates
-                    liveStatusSocket.onmessage = function (event) {
-                        const data = JSON.parse(event.data);
-                        const sessionRow = document.querySelector(`#${data.session_id}`);
+    <!-- JavaScript for WebSocket and HTMX Handling -->
+    <script>
+        document.addEventListener('DOMContentLoaded', function () {
+            // WebSocket for live status updates
+            const liveStatusSocket = new WebSocket('ws://localhost:8000/ws/live-status/');
+            const sessionUpdatesSocket = new WebSocket('ws://localhost:8000/ws/session-updates/');
 
-                        if (sessionRow) {
-                            console.log("Session row: " + sessionRow);
-                            const statusCell = sessionRow.querySelector('.live-status');
-                            if (data.live) {
-                                console.log('Live');
-                                statusCell.innerHTML = '<span class="text-green-500">Live</span>';
-                                const sessionId = data.session_id;  // Use Django template syntax to get session_id
-                                console.log("Session ID: " + sessionId);
-                                htmx.ajax('GET', `{% url 'replay_session' 'session_id_placeholder' %}`.replace('session_id_placeholder', sessionId), {
-                                    target: '#viewer-container'
-                                });
-                            } else {
-                                console.log('Not Live');
-                                statusCell.innerHTML = '<span class="text-gray-500">Not Live</span>';
-                                const liveSessionIndicator = document.getElementById('live-session-indicator');
-                                if (liveSessionIndicator) {
-                                    liveSessionIndicator.remove();
-                                }
+            const updateLiveStatus = function (liveStatusSocket) {
+                // Handle live status updates
+                liveStatusSocket.onmessage = function (event) {
+                    const data = JSON.parse(event.data);
+                    const sessionRow = document.querySelector(`#${data.session_id}`);
+
+                    if (sessionRow) {
+                        console.log("Session row: " + sessionRow);
+                        const statusCell = sessionRow.querySelector('.live-status');
+                        if (data.live) {
+                            console.log('Live');
+                            statusCell.innerHTML = '<span class="text-green-500">Live</span>';
+                            const sessionId = data.session_id;  // Use Django template syntax to get session_id
+                            console.log("Session ID: " + sessionId);
+                            htmx.ajax('GET', `{% url 'replay_session' 'session_id_placeholder' %}`.replace('session_id_placeholder', sessionId), {
+                                target: '#viewer-container'
+                            });
+                        } else {
+                            console.log('Not Live');
+                            statusCell.innerHTML = '<span class="text-gray-500">Not Live</span>';
+                            const liveSessionIndicator = document.getElementById('live-session-indicator');
+                            if (liveSessionIndicator) {
+                                liveSessionIndicator.remove();
                             }
                         }
-                    };
-                };
-
-                // Handle new session creation
-                sessionUpdatesSocket.onmessage = function (event) {
-                    const data = JSON.parse(event.data);
-
-                    if (data.action === 'session-created') {
-                        htmx.trigger('#sessions-container', 'session-created');
-                        document.addEventListener('htmx:afterSettle', function (event) {
-                            if (event.detail.target.id === 'sessions-container') {
-                                updateLiveStatus(liveStatusSocket);
-                            }
-                        });
                     }
                 };
+            };
 
-                updateLiveStatus(liveStatusSocket);
+            // Handle new session creation
+            sessionUpdatesSocket.onmessage = function (event) {
+                const data = JSON.parse(event.data);
 
-                liveStatusSocket.onclose = function () {
-                    console.log("WebSocket connection for live status closed.");
-                };
+                if (data.action === 'session-created') {
+                    htmx.trigger('#sessions-container', 'session-created');
+                    document.addEventListener('htmx:afterSettle', function (event) {
+                        if (event.detail.target.id === 'sessions-container') {
+                            updateLiveStatus(liveStatusSocket);
+                        }
+                    });
+                }
+            };
 
-                sessionUpdatesSocket.onclose = function () {
-                    console.log("WebSocket connection for session updates closed.");
-                };
-            });
-        </script>
-    </div>
+            updateLiveStatus(liveStatusSocket);
+
+            liveStatusSocket.onclose = function () {
+                console.log("WebSocket connection for live status closed.");
+            };
+
+            sessionUpdatesSocket.onclose = function () {
+                console.log("WebSocket connection for session updates closed.");
+            };
+        });
+    </script>
+</div>
