@@ -1,30 +1,30 @@
-<div class="p-4 bg-white shadow rounded hover:bg-gray-100 cursor-pointer"
-     :class="{ 'bg-gray-100': selectedSite === {{ site.id }} }"
+<div class="p-4 bg-gray-800 text-white shadow-lg rounded-lg cursor-pointer transition duration-200 ease-in-out transform hover:scale-105 hover:bg-gray-700"
+     :class="{ 'bg-gray-700': selectedSite === {{ site.id }} }"
      @click="selectedSite = {{ site.id }}">
     <h2 class="text-lg font-semibold">{{ site.name }}</h2>
-    <p class="text-gray-500">
+    <p class="text-gray-400">
         {% if site.domain %}
             {{ site.domain }}
         {% else %}
             No domain set.
         {% endif %}
     </p>
-    <div class="mt-4 flex justify-between">
+    <div class="mt-4 flex justify-between items-center">
         <div>
             <button hx-get="{% url 'update_site' site.id %}" hx-target="#list-sites-container-content"
                     hx-swap="outerHTML"
-                    class="px-2 py-1 bg-indigo-600 text-white font-semibold rounded hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-indigo-500">
+                    class="px-2 py-1 bg-indigo-700 text-white font-semibold rounded hover:bg-indigo-800 focus:outline-none focus:ring-2 focus:ring-indigo-500 transition duration-150 ease-in-out shadow-md">
                 Edit
             </button>
             <button hx-get="{% url 'delete_site' site.id %}" hx-target="#list-sites-container-content"
                     hx-swap="outerHTML"
-                    class="px-2 py-1 bg-red-600 text-white font-semibold rounded hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-red-500 ml-1">
+                    class="px-2 py-1 bg-red-700 text-white font-semibold rounded hover:bg-red-800 focus:outline-none focus:ring-2 focus:ring-red-500 ml-1 transition duration-150 ease-in-out shadow-md">
                 Delete
             </button>
         </div>
         <button hx-get="{% url 'sessions_view' site.id %}" hx-target="#list-sites-container"
                 hx-swap="outerHTML"
-                class="px-2 py-1 bg-blue-600 text-white font-semibold rounded hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500">
+                class="px-2 py-1 bg-blue-700 text-white font-semibold rounded hover:bg-blue-800 focus:outline-none focus:ring-2 focus:ring-blue-500 transition duration-150 ease-in-out shadow-md">
             View Sessions
         </button>
     </div>
