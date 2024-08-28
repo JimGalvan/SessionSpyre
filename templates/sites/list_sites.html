@@ -13,21 +13,7 @@
         {% if sites %}
     <div id="sites-list" class="grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-3">
         {% for site in sites %}
-        <div class="p-4 bg-white shadow rounded hover:bg-gray-100 cursor-pointer" 
-             :class="{ 'bg-gray-100': selectedSite === {{ site.id }} }" 
-             @click="selectedSite = {{ site.id }}">
-            <h2 class="text-lg font-semibold">{{ site.name }}</h2>
-            <p class="text-gray-500">{{ site.domain }}</p>
-            <div class="mt-4">
-                <button hx-get="{% url 'update_site' site.id %}" hx-target="#list-sites-container-content"
-                        hx-swap="outerHTML"
-                        class="text-indigo-600 hover:text-indigo-800">Edit
-                </button>
-                <button hx-get="{% url 'delete_site' site.id %}" hx-target="#list-sites-container-content"
-                        hx-swap="outerHTML"
-                        class="text-red-600 hover:text-red-800 ml-4">Delete</button>
-            </div>
-        </div>
+            {% include 'sites/site.html' %}
         {% endfor %}
     </div>
         {% else %}
