@@ -9,7 +9,7 @@ from session_tracker.models import Site
 @login_required
 def list_sites(request):
     sites = Site.objects.filter(user=request.user)
-    return render(request, 'list_sites.html', {'sites': sites})
+    return render(request, 'sessions/list_sites.html', {'sites': sites})
 
 
 # views.py (excerpt)
@@ -34,7 +34,7 @@ def create_site(request):
         messages.success(request, "Site created successfully!")
         return redirect(reverse('list_sites'))
 
-    return render(request, 'create_site.html')
+    return render(request, 'sites/create_site.html')
 
 
 @login_required
@@ -48,7 +48,7 @@ def update_site(request, site_id):
         messages.success(request, "Site updated successfully!")
         return redirect(reverse('list_sites'))
 
-    return render(request, 'update_site.html', {'site': site})
+    return render(request, 'sites/update_site.html', {'site': site})
 
 
 @login_required
@@ -59,4 +59,4 @@ def delete_site(request, site_id):
         messages.success(request, "Site deleted successfully!")
         return redirect(reverse('list_sites'))
 
-    return render(request, 'delete_site.html', {'site': site})
+    return render(request, 'sites/delete_site.html', {'site': site})
