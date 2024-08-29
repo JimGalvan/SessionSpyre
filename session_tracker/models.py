@@ -1,4 +1,6 @@
+import hashlib
 import json
+import uuid
 
 from django.contrib.auth.models import User
 from django.db import models
@@ -18,15 +20,26 @@ def create_or_update_user_profile(sender, instance, created, **kwargs):
     instance.userprofile.save()
 
 
+def generate_site_key(user_id: int) -> str:
+    unique_string = f"{user_id}-{uuid.uuid4()}"
+    return hashlib.sha256(unique_string.encode()).hexdigest()
+
+
 class Site(models.Model):
     user = models.ForeignKey(User, on_delete=models.CASCADE, related_name='sites')
     name = models.CharField(max_length=255)
     domain = models.CharField(max_length=255, unique=True)
+    key = models.CharField(max_length=64, unique=True, blank=True, null=True)
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
 
     def __str__(self):
         return self.name
+
+    def save(self, *args, **kwargs):
+        if not self.key:
+            self.key = generate_site_key(self.user.id)
+        super().save(*args, **kwargs)
 
 
 class UserSession(models.Model):
