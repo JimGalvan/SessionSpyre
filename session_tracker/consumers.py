@@ -3,12 +3,13 @@ import json
 import logging
 import secrets
 from datetime import datetime, timedelta
+from urllib.parse import parse_qs
 
 import pytz
 from asgiref.sync import sync_to_async
 from channels.generic.websocket import AsyncWebsocketConsumer
 
-from .models import UserSession
+from .models import UserSession, Site
 
 logger = logging.getLogger(__name__)
 
@@ -19,6 +20,7 @@ class SessionConsumer(AsyncWebsocketConsumer):
 
     def __init__(self, *args, **kwargs):
         super().__init__(args, kwargs)
+        self.site_key = None
         self.last_heartbeat = None
         self.group_name = None
         self.session_id = None
@@ -26,9 +28,22 @@ class SessionConsumer(AsyncWebsocketConsumer):
         self.timezone = pytz.UTC
 
     async def connect(self):
+        # Extract the site_key from the query string
+        query_string = self.scope['query_string'].decode()
+        query_params = parse_qs(query_string)
+        self.site_key = query_params.get('site_key', [None])[0]
+
+        # Ensure session_id is correctly fetched
         self.session_id = self.scope['url_route']['kwargs']['session_id']
         self.group_name = f"session_{self.session_id}"
         self.last_heartbeat = datetime.now()
+
+        # **Site Key Validation**
+        site = await sync_to_async(self.validate_site_key)(self.site_key)
+        if not site:
+            logger.error(f"SessionConsumer: Invalid site key {self.site_key}. Disconnecting.")
+            await self.close(code=4001)  # Use an appropriate close code
+            return
 
         # Logging connection attempt
         logger.info(f"SessionConsumer: Connecting to session {self.session_id}")
@@ -52,6 +67,13 @@ class SessionConsumer(AsyncWebsocketConsumer):
 
         # Start the heartbeat check loop
         self.start_heartbeat_check()
+
+    def validate_site_key(self, site_key):
+        """Validate if the provided site_key exists in the database."""
+        try:
+            return Site.objects.get(key=site_key)
+        except Site.DoesNotExist:
+            return None
 
     async def disconnect(self, close_code):
         # Logging disconnection
