@@ -1,3 +1,66 @@
+<style>
+    /* Override default rrwebPlayer styles */
+    .rr-player {
+        background-color: #1f2937 !important; /* Dark gray background */
+        border: 2px solid #6366F1 !important; /* Indigo border to match the app's accent color */
+        border-radius: 8px !important; /* Rounded corners for a modern look */
+        box-shadow: 0 4px 15px rgba(0, 0, 0, 0.4) !important; /* Noticeable shadow for elevation */
+    }
+
+    .rr-controller, .rr-controller.svelte-19ke1iv {
+        background-color: #2d3748 !important; /* Slightly lighter gray for controls */
+        color: #ffffff !important; /* White text for controls */
+        border-radius: 0 0 8px 8px !important; /* Rounded bottom corners */
+    }
+
+    .rr-timeline.svelte-19ke1iv {
+        background-color: #2d3748 !important; /* Matches controller background */
+        color: #ffffff !important; /* White text for time display */
+    }
+
+    .rr-timeline__time.svelte-19ke1iv {
+        color: #ffffff !important; /* White text for readability */
+    }
+
+    .rr-progress.svelte-19ke1iv {
+        background-color: #2d3748 !important; /* Dark background for progress bar */
+        border-top: solid 4px #1f2937 !important; /* Darker gray for top border */
+        border-bottom: solid 4px #1f2937 !important; /* Darker gray for bottom border */
+    }
+
+    .rr-progress__step.svelte-19ke1iv {
+        background-color: #6366F1 !important; /* Indigo for buffered content */
+    }
+
+    .rr-progress__handler.svelte-19ke1iv {
+        background-color: #f87171 !important; /* Red for the progress thumb to match the record dot */
+    }
+
+    .rr-controller__btns button.svelte-19ke1iv {
+        background-color: transparent !important; /* Transparent background for buttons */
+        color: #ffffff !important; /* White icons */
+    }
+
+    .rr-controller__btns button.svelte-19ke1iv:hover {
+        background-color: #6366F1 !important; /* Indigo background on hover */
+        color: #ffffff !important; /* White text on hover */
+    }
+
+    .rr-controller__btns button.svelte-19ke1iv:focus {
+        outline: none !important;
+        box-shadow: 0 0 0 2px #6366F1 !important; /* Indigo outline for focus state */
+    }
+
+    .rr-controller__btns button.active.svelte-19ke1iv {
+        background-color: #6366F1 !important; /* Indigo for active state */
+        color: #ffffff !important; /* White text for active state */
+    }
+
+    .rr-controller__btns button.svelte-19ke1iv:disabled {
+        cursor: not-allowed !important;
+        opacity: 0.5 !important; /* Reduced opacity for disabled state */
+    }
+</style>
 <div class="h-full w-full p-4" style="position: relative; z-index: 10;">
     <div class="flex">
         <div class="flex items-center mb-4">
@@ -32,7 +95,7 @@
                     liveMode: {{ session.live|yesno:"true,false" }},
                 }
             });
-
+        
             // Start at the last event if the session is live
             if (events.length > 0) {
                 const lastEvent = events[events.length - 1];

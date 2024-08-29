@@ -10,8 +10,8 @@
 <div id="{{ session.session_id }}"
      x-data="{ showConfirmModal: false }"
      x-on:click="select('{{ session.session_id }}')"
-     class="cursor-pointer p-4 bg-white rounded shadow hover:bg-gray-100 transition"
-     :class="{ 'bg-gray-100': selectedId === '{{ session.session_id }}' }"
+     class="cursor-pointer p-4 bg-gray-900 text-white rounded-lg shadow-md hover:bg-gray-700 transition duration-150 ease-in-out"
+     :class="{ 'bg-gray-600 border-2 border-indigo-500': selectedId === '{{ session.session_id }}' }"
      hx-get="{% url 'replay_session' session.session_id %}"
      hx-target="#viewer-container"
      hx-swap="innerHTML">
@@ -19,19 +19,19 @@
         <div class="flex justify-between items-start">
             <h3 class="text-md font-semibold">ID: {{ session.session_id }}</h3>
             <div x-on:click="showConfirmModal = true"
-                 class="bg-red-400 text-white text-sm rounded p-2 py-1 flex items-center justify-center hover:bg-red-500 transition duration-300 ease-in-out">
+                 class="bg-red-600 text-white text-sm rounded p-2 py-1 flex items-center justify-center hover:bg-red-700 transition duration-150 ease-in-out">
                 Delete
             </div>
             <template x-if="showConfirmModal">
                 {% include 'elements/confirm_delete_session_modal.html' %}
             </template>
         </div>
-        <p class="text-sm text-gray-600">Date: {{ session.created_at }}</p>
+        <p class="text-sm text-gray-300">Date: {{ session.created_at }}</p>
         <p class="text-sm">
             {% if session.live %}
-                <span class="live-status bg-green-500 text-white rounded px-1 text-xs">Live</span>
+                <span class="live-status bg-green-600 text-white rounded px-1 text-xs">Live</span>
             {% else %}
-                <span class="live-status bg-gray-400 text-white rounded px-1 text-xs">Not Live</span>
+                <span class="live-status bg-gray-600 text-white rounded px-1 text-xs">Not Live</span>
             {% endif %}
         </p>
     </div>

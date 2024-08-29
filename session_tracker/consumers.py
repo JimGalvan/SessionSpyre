@@ -105,10 +105,14 @@ class SessionConsumer(AsyncWebsocketConsumer):
 
         events = text_data_json.get('events')
         user_id = text_data_json.get('user_id')
+        site_id = text_data_json.get('site_id')
+
+        site: Site = await sync_to_async(Site.objects.get)(id=site_id)
 
         # Fetch or create the session and check if it's been inactive for too long
         session, created = await sync_to_async(UserSession.objects.get_or_create)(
             session_id=self.session_id,
+            site=site,
             defaults={'user_id': user_id, 'events': events}
         )
 
