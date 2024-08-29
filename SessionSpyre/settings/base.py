@@ -1,3 +1,4 @@
+import os
 from pathlib import Path
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
@@ -108,3 +109,43 @@ CHANNEL_LAYERS = {
 }
 
 ASGI_APPLICATION = 'SessionSpyre.asgi.application'
+
+LOGGING = {
+    'version': 1,
+    'disable_existing_loggers': False,
+    'formatters': {
+        'detailed': {
+            'format': '{asctime} {levelname} {message} [{pathname}:{lineno}]',
+            'style': '{',
+        },
+        'simple': {
+            'format': '{levelname} {message}',
+            'style': '{',
+        },
+    },
+    'handlers': {
+        'console': {
+            'level': 'INFO',  # Set this to INFO to log info and above
+            'class': 'logging.StreamHandler',
+            'formatter': 'detailed',
+        },
+        'file': {
+            'level': 'INFO',  # Set this to INFO to log info and above
+            'class': 'logging.FileHandler',
+            'filename': os.path.join(os.path.dirname(__file__), 'django_info.log'),
+            'formatter': 'detailed',
+        },
+    },
+    'loggers': {
+        'django': {
+            'handlers': ['console', 'file'],
+            'level': 'INFO',  # Set this to INFO to log info and above
+            'propagate': True,
+        },
+        'session_tracker': {  # Replace 'myapp' with your app's name
+            'handlers': ['console', 'file'],
+            'level': 'INFO',  # Set this to INFO to log info and above
+            'propagate': True,
+        },
+    },
+}

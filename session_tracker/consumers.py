@@ -1,4 +1,3 @@
-import asyncio
 import json
 import logging
 import secrets
@@ -15,13 +14,12 @@ logger = logging.getLogger(__name__)
 
 
 class SessionConsumer(AsyncWebsocketConsumer):
-    HEARTBEAT_TIMEOUT = 60  # Timeout in seconds for the heartbeat
     SESSION_TIMEOUT = 30  # Timeout in minutes for the session
 
     def __init__(self, *args, **kwargs):
         super().__init__(args, kwargs)
+        self.connection_closed = None
         self.site_key = None
-        self.last_heartbeat = None
         self.group_name = None
         self.session_id = None
         self.live_session_group_postfix = "live_session"
@@ -36,7 +34,6 @@ class SessionConsumer(AsyncWebsocketConsumer):
         # Ensure session_id is correctly fetched
         self.session_id = self.scope['url_route']['kwargs']['session_id']
         self.group_name = f"session_{self.session_id}"
-        self.last_heartbeat = datetime.now()
 
         # **Site Key Validation**
         site = await sync_to_async(self.validate_site_key)(self.site_key)
@@ -57,16 +54,13 @@ class SessionConsumer(AsyncWebsocketConsumer):
         # Mark the session as live
         await self.set_session_live_status(True)
 
-        await self.accept()
-
         # Notify live status change if applicable
         await self.notify_live_status(True)
 
         # Notify the frontend about the new session creation
         await self.notify_session_creation()
 
-        # Start the heartbeat check loop
-        self.start_heartbeat_check()
+        await self.accept()
 
     def validate_site_key(self, site_key):
         """Validate if the provided site_key exists in the database."""
@@ -76,6 +70,8 @@ class SessionConsumer(AsyncWebsocketConsumer):
             return None
 
     async def disconnect(self, close_code):
+        print("Disconnect method called")  # Temporary print statement for debugging
+
         # Logging disconnection
         logger.info(f"SessionConsumer: Disconnecting from session {self.session_id} with close code {close_code}")
 
@@ -91,35 +87,42 @@ class SessionConsumer(AsyncWebsocketConsumer):
         # Notify live status change if applicable
         await self.notify_live_status(False)
 
+        self.connection_closed = True  # Set the flag to True
+
     async def receive(self, text_data=None, bytes_data=None):
         logger.info(f"SessionConsumer: Received data in session {self.session_id}")
 
         text_data_json = json.loads(text_data)
         action = text_data_json.get('action')
 
-        if action == 'heartbeat':
-            # Update the last heartbeat time
-            self.last_heartbeat = datetime.now()
-            logger.info(f"SessionConsumer: Received heartbeat for session {self.session_id}")
-            return
-
         events = text_data_json.get('events')
         user_id = text_data_json.get('user_id')
         site_id = text_data_json.get('site_id')
 
-        site: Site = await sync_to_async(Site.objects.get)(id=site_id)
+        site = None
+
+        try:
+            site: Site = await sync_to_async(Site.objects.get)(id=site_id)
+        except Site.DoesNotExist:
+            logger.error(f"SessionConsumer: Site with id {site_id} does not exist.")
+            await self.send(text_data=json.dumps({'status': 'error', 'message': 'Site does not exist'}))
 
         # Fetch or create the session and check if it's been inactive for too long
         session, created = await sync_to_async(UserSession.objects.get_or_create)(
             session_id=self.session_id,
             site=site,
+            live=True,
             defaults={'user_id': user_id, 'events': events}
         )
 
         if not created:
             # Check if the session has been inactive for more than the threshold
-            updated_at_naive = session.updated_at.replace(tzinfo=None)
-            is_session_inactive: bool = datetime.now() - updated_at_naive > timedelta(minutes=self.SESSION_TIMEOUT)
+            # Ensure both datetimes are timezone-aware in UTC
+            updated_at_aware = session.updated_at.astimezone(pytz.UTC)
+            current_time_utc = datetime.now(pytz.UTC)
+
+            # Check if the session is inactive
+            is_session_inactive: bool = current_time_utc - updated_at_aware > timedelta(minutes=self.SESSION_TIMEOUT)
 
             if is_session_inactive:
                 # Mark the current session as ended
@@ -162,6 +165,8 @@ class SessionConsumer(AsyncWebsocketConsumer):
         else:
             logger.info(f"SessionConsumer: New session created with ID {self.session_id}")
 
+        await self.notify_live_status(True)
+
         # Send the event to all live session viewers
         await self.channel_layer.group_send(
             f"{self.group_name}_{self.live_session_group_postfix}",
@@ -198,22 +203,6 @@ class SessionConsumer(AsyncWebsocketConsumer):
                 "session_id": self.session_id
             }
         )
-
-    def start_heartbeat_check(self):
-        """Start a periodic task to check for heartbeat timeouts."""
-        self.check_heartbeat()
-
-    async def check_heartbeat(self):
-        """Periodically check if a heartbeat has been received recently."""
-        while True:
-            await asyncio.sleep(self.HEARTBEAT_TIMEOUT)
-            if datetime.now() - self.last_heartbeat > timedelta(seconds=self.HEARTBEAT_TIMEOUT):
-                logger.warning(
-                    f"SessionConsumer: Heartbeat timeout for session {self.session_id}. Marking as inactive.")
-                await self.set_session_live_status(False)
-                await self.notify_live_status(False)
-                await self.close()
-                break
 
 
 class SessionUpdatesConsumer(AsyncWebsocketConsumer):
@@ -294,11 +283,12 @@ class LiveSessionConsumer(AsyncWebsocketConsumer):
 
     async def disconnect(self, close_code):
         logger.info(
-            f"LiveSessionConsumer: Disconnecting from live session {self.session_id} with close code {close_code}")
+            f"LiveSessionConsumer: Disconnecting from live session {self.session_id} with close code {close_code}"
+        )
 
-        # Leave the session group
+        # Correctly format the group name with the underscore between group_name and group_postfix
         await self.channel_layer.group_discard(
-            self.group_name + self.group_postfix,
+            f"{self.group_name}_{self.group_postfix}",
             self.channel_name
         )
 

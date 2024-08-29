@@ -1,3 +1,6 @@
+from datetime import timedelta, datetime
+
+import pytz
 from django.shortcuts import render
 
 from session_tracker.models import UserSession, Site
@@ -26,4 +29,14 @@ def delete_session(request, session_id):
 def sessions_list(request):
     user_id: str = request.user.id
     sessions: list = UserSession.objects.filter(user_id=user_id)
+    check_live_status(sessions)
     return render(request, 'sessions/session_list.html', {'sessions': sessions})
+
+
+def check_live_status(sessions):
+    # using the datetime field updated_at which is UTC datetime, if the last updated_at is more than 1 minute ago
+    # then the session is not live
+    for session in sessions:
+        if session.updated_at < datetime.now(pytz.UTC) - timedelta(minutes=1):
+            session.live = False
+            session.save()
