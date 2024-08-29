@@ -28,8 +28,9 @@
     <script>
         document.addEventListener('DOMContentLoaded', function () {
             // WebSocket for live status updates
-            const liveStatusSocket = new WebSocket('ws://localhost:8000/ws/live-status/');
-            const sessionUpdatesSocket = new WebSocket('ws://localhost:8000/ws/session-updates/');
+            let host = window.location.host;
+            const liveStatusSocket = new WebSocket(`ws://${host}/ws/live-status/`);
+            const sessionUpdatesSocket = new WebSocket(`ws://${host}/ws/session-updates/`);
 
             const updateLiveStatus = function (liveStatusSocket) {
                 // Handle live status updates

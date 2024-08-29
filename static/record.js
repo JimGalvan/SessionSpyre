@@ -71,7 +71,9 @@
     }
 
     // Ensure user_id is provided by the developer
-    const userId = config.user_id;
+    const userId = config.userId;
+    const siteId = config.siteId || 'unknown';
+    const siteKey = config.siteKey || 'unknown';
 
     if (!userId) {
         console.error("User ID is not provided. Event recording will not start.");
@@ -81,11 +83,11 @@
     console.log('User ID:', userId);
 
     let events = [];
-    const socket = new WebSocket(`ws://localhost:8000/ws/record-session/${sessionId}/`);
+    let host = window.location.host; // dynamically gets the current server host
+    let socket = new WebSocket(`ws://${host}/ws/record-session/${sessionId}/?site_key=${siteKey}`);
 
     socket.onopen = function () {
         console.log("WebSocket connection opened");
-        startHeartbeat(); // Start sending heartbeat messages once the connection is open
     };
 
     socket.onmessage = function (event) {
@@ -94,7 +96,6 @@
 
     socket.onclose = function () {
         console.log("WebSocket connection closed");
-        stopHeartbeat(); // Stop sending heartbeats if the connection is closed
     };
 
     const stopRecording = rrweb.record({
@@ -103,6 +104,7 @@
             if (events.length >= 10) { // Adjust the batch size as needed
                 socket.send(JSON.stringify({
                     user_id: userId,
+                    site_id: siteId,
                     events: events,
                 }));
                 events = [];
@@ -128,17 +130,11 @@
     // Inactivity detection logic
     let inactivityTimeout;
     let extendedInactivityTimeout;
-    const inactivityLimit = 300000; // 5 minutes for pausing recording
     const extendedInactivityLimit = 1800000; // 30 minutes for terminating the session
 
     function resetInactivityTimeout() {
         clearTimeout(inactivityTimeout);
         clearTimeout(extendedInactivityTimeout);
-
-        inactivityTimeout = setTimeout(() => {
-            console.log("User inactive. Pausing recording.");
-            rrweb.pause(); // Pause recording due to inactivity
-        }, inactivityLimit);
 
         extendedInactivityTimeout = setTimeout(() => {
             console.log("User inactive for 30 minutes. Terminating session.");
@@ -147,8 +143,6 @@
     }
 
     function resumeRecordingOnActivity() {
-        rrweb.resume(); // Resume recording when user becomes active
-        console.log("User active. Resuming recording.");
         resetInactivityTimeout(); // Reset inactivity timer on activity
     }
 
@@ -158,7 +152,6 @@
         if (socket.readyState === WebSocket.OPEN) {
             socket.close(); // Close the WebSocket connection
         }
-        stopHeartbeat();
     }
 
     // Start listening for user activity to reset inactivity timer
@@ -169,37 +162,20 @@
     // Initialize inactivity timeout
     resetInactivityTimeout();
 
-    // Heartbeat logic
-    let heartbeatInterval;
-
-    function startHeartbeat() {
-        heartbeatInterval = setInterval(() => {
-            if (socket.readyState === WebSocket.OPEN) {
-                socket.send(JSON.stringify({
-                    action: 'heartbeat',
-                    session_id: sessionId
-                }));
-                console.log('Sent heartbeat');
-            }
-        }, 5000);
-    }
-
-    function stopHeartbeat() {
-        clearInterval(heartbeatInterval);
-    }
-
     window.addEventListener('beforeunload', () => {
         if (events.length > 0) {
             socket.send(JSON.stringify({
                 user_id: userId,
                 events: events,
+                site_id: siteId,
             }));
         }
         stopRecording();
-        stopHeartbeat(); // Stop heartbeat when unloading
         socket.close();
     });
 
 })({
-    user_id: '1' // The ID defined by the developer, representing the logged-in user
+    userId: 1,
+    siteId: 37,
+    siteKey: '3773363413483d51613948a5bdb145c26eaf57da6391d5b7f57edffc2800ab20',
 });
