@@ -83,7 +83,7 @@
     }
 
     function setupWebSocketConnection(userId, siteId, siteKey, sessionId) {
-        const socket = new WebSocket(`ws://localhost:8000/ws/record-session/${sessionId}/?site_key=${siteKey}`);
+        const socket = new WebSocket(`ws://localhost:8000/ws/record-session/${sessionId}/?siteId=${siteId}&siteKey=${siteKey}`);
 
         socket.onopen = () => console.log("WebSocket connection opened");
         socket.onmessage = event => console.log("Message from server:", event.data);

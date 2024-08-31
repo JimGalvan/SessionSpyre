@@ -16,7 +16,7 @@
     }
 </script>
 <div x-data="{ showSnippetModal: false }">
-    <div class="p-4 bg-gray-900 text-white shadow-lg rounded-lg cursor-pointer transition duration-200 ease-in-out transform hover:scale-105 hover:bg-gray-700"
+    <div class="p-4 bg-gray-900 text-white shadow-lg rounded-lg cursor-pointer transition duration-200 ease-in-out transform hover:shadow-xl"
      :class="{ 'bg-gray-700': selectedSite === {{ site.id }} }"
      @click="selectedSite = {{ site.id }}">
     <h2 class="text-lg font-semibold">{{ site.name }}</h2>
@@ -42,7 +42,7 @@
         </div>
         <button hx-get="{% url 'sessions_view' site.id %}" hx-target="#list-sites-container"
                 hx-swap="outerHTML"
-                class="px-2 py-1 bg-blue-600 text-white font-semibold rounded hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 shadow-md transition duration-150 ease-in-out">
+                class="px-2 py-1 bg-indigo-600 text-white font-semibold rounded hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-indigo-500 shadow-md transition duration-150 ease-in-out">
             View Sessions
         </button>
         <button hx-get="{% url 'get_snippet_data' user_id=request.user.id site_id=site.id %}"

@@ -26,9 +26,9 @@ def delete_session(request, session_id):
     return render(request, 'sessions/session_list.html', {'sessions': sessions})
 
 
-def sessions_list(request):
+def sessions_list(request, site_id):
     user_id: str = request.user.id
-    sessions: list = UserSession.objects.filter(user_id=user_id)
+    sessions: list = UserSession.objects.filter(user_id=user_id, site_id=site_id)
     check_live_status(sessions)
     return render(request, 'sessions/session_list.html', {'sessions': sessions})
 
