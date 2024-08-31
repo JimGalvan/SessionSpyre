@@ -1,0 +1,43 @@
+<style>
+    .code-snippet {
+        background-color: #282a36; /* Dracula background color */
+        padding: 5px;
+        border-radius: 5px;
+        font-family: 'Courier New', Courier, monospace;
+        overflow-x: auto;
+        color: #f8f8f2; /* Dracula foreground color */
+        border: 1px solid #44475a; /* Border matching Dracula theme */
+    }
+
+    .code-snippet .keyword {
+        color: #ff79c6; /* Pink for keywords */
+    }
+
+    .code-snippet .string {
+        color: #f1fa8c; /* Yellow for strings */
+    }
+
+    .code-snippet .number {
+        color: #bd93f9; /* Purple for numbers */
+    }
+
+    .code-snippet .function {
+        color: #50fa7b; /* Green for functions */   
+    }
+</style>
+<div class="code-snippet">
+    &lt;<span class="keyword">script</span> <span class="keyword">src</span>=<span class="string">"http://localhost:8000/static/record.js"</span>&gt;&lt;/<span
+        class="keyword">script</span>&gt;<br>
+    &lt;<span class="keyword">script</span>&gt;<br>
+    &nbsp;&nbsp;<span class="function">(function ()</span> {<br>
+    &nbsp;&nbsp;&nbsp;&nbsp;window.<span class="keyword">recordConfig</span> = {<br>
+    &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="keyword">userId</span>: <span
+        class="number">{{ snippet.userId }}</span>,<br>
+    &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="keyword">siteId</span>: <span
+        class="number">{{ snippet.siteId }}</span>,<br>
+    &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="keyword">siteKey</span>: <span
+        class="string">'{{ snippet.siteKey }}'</span>,<br>
+    &nbsp;&nbsp;&nbsp;&nbsp;};<br>
+    &nbsp;&nbsp;})();<br>
+    &lt;/<span class="keyword">script</span>&gt;
+</div>

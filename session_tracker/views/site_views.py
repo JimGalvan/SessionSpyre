@@ -1,9 +1,68 @@
 from django.contrib import messages
 from django.contrib.auth.decorators import login_required
+from django.http import JsonResponse
 from django.shortcuts import render, redirect, get_object_or_404
 from django.urls import reverse
+from django.views.decorators.http import require_GET
+from pygments import highlight
+from pygments.formatters.html import HtmlFormatter
+from pygments.lexers import JavascriptLexer
 
 from session_tracker.models import Site
+
+
+@login_required
+@require_GET
+def generate_snippet(request, user_id, site_id):
+    try:
+        # Fetch the site key from the database
+        site = Site.objects.get(id=site_id, user_id=user_id)
+        site_key = site.key  # Assuming 'site_key' is a field in your Site model
+
+        # Construct the snippet
+        snippet = f"""
+               <script src="https://your-cdn-url.com/your-script.js"></script>
+               <script>
+                 (function() {{
+                   window.recordConfig = {{
+                     userId: '{user_id}',
+                     siteId: '{site_id}',
+                     siteKey: '{site_key}',
+                   }};
+                 }})();
+               </script>
+               """
+
+        # Highlight the snippet using Pygments
+        formatter = HtmlFormatter(full=True, style="dracula", noclasses=False, linenos=True)
+        highlighted_snippet = highlight(snippet, JavascriptLexer(), formatter)
+        return render(request, 'sites/js_snippet_dialog.html', {'highlighted_snippet': highlighted_snippet})
+    except Site.DoesNotExist:
+        return JsonResponse({'error': 'Site not found.'}, status=404)
+    except Exception as e:
+        return JsonResponse({'error': str(e)}, status=500)
+
+
+@login_required
+@require_GET
+def get_snippet_data(request, user_id, site_id):
+    try:
+        # Fetch the site key from the database
+        site = Site.objects.get(id=site_id, user_id=user_id)
+        site_key = site.key  # Assuming 'site_key' is a field in your Site model
+
+        # Build a snippet object
+        snippet = {
+            'userId': user_id,
+            'siteId': site_id,
+            'siteKey': site_key,
+        }
+
+        return render(request, 'sites/js_snippet.html', {'snippet': snippet})
+    except Site.DoesNotExist:
+        return JsonResponse({'error': 'Site not found.'}, status=404)
+    except Exception as e:
+        return JsonResponse({'error': str(e)}, status=500)
 
 
 @login_required()

@@ -1,4 +1,22 @@
-<div class="p-4 bg-gray-900 text-white shadow-lg rounded-lg cursor-pointer transition duration-200 ease-in-out transform hover:scale-105 hover:bg-gray-700"
+<script>
+    function copySnippet() {
+        // Use innerText to copy only the visible text
+        const snippetText = document.getElementById('snippet-content').innerText
+            .replace(/&lt;/g, '<') // Decode HTML entities
+            .replace(/&gt;/g, '>')
+            .replace(/&nbsp;/g, ' ')
+            .replace(/\u00a0/g, ' '); // Replace non-breaking spaces with regular spaces
+
+
+        navigator.clipboard.writeText(snippetText).then(function () {
+            alert('Snippet copied to clipboard!');
+        }, function (err) {
+            console.error('Failed to copy snippet: ', err);
+        });
+    }
+</script>
+<div x-data="{ showSnippetModal: false }">
+    <div class="p-4 bg-gray-900 text-white shadow-lg rounded-lg cursor-pointer transition duration-200 ease-in-out transform hover:scale-105 hover:bg-gray-700"
      :class="{ 'bg-gray-700': selectedSite === {{ site.id }} }"
      @click="selectedSite = {{ site.id }}">
     <h2 class="text-lg font-semibold">{{ site.name }}</h2>
@@ -27,5 +45,18 @@
                 class="px-2 py-1 bg-blue-600 text-white font-semibold rounded hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 shadow-md transition duration-150 ease-in-out">
             View Sessions
         </button>
+        <button hx-get="{% url 'get_snippet_data' user_id=request.user.id site_id=site.id %}"
+                hx-target="#snippet-content"
+                @click="showSnippetModal = true"
+                hx-trigger="click"
+                class="px-2 py-1 bg-gray-600 text-white font-semibold rounded hover:bg-gray-700 focus:outline-none focus:ring-2 focus:ring-gray-500 shadow-md transition duration-150 ease-in-out"
+                hx-swap="innerHTML">
+            Install Code
+        </button>
     </div>
 </div>
+    <template x-if="showSnippetModal">
+        {% include 'sites/js_snippet_dialog.html' %}
+    </template>
+</div>
+

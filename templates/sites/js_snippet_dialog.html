@@ -1,0 +1,21 @@
+<div x-cloak class="fixed top-0 left-0 w-full h-full flex items-center justify-center bg-black bg-opacity-50"
+     style="z-index: 1000;">
+    <div class="bg-gray-800 text-white p-4 rounded-lg shadow-lg max-w-2xl w-full mx-auto sm:m-4">
+        <center><h2 class="text-xl font-bold mb-4">Install JavaScript Code Snippet</h2></center>
+        <div id="snippet-content" class="p-4 rounded-md text-sm mb-4">
+        </div>
+        <div class="flex justify-between">
+            <button type="button"
+                    @click="showSnippetModal = false"
+                    class="px-4 py-2 bg-gray-600 text-white rounded hover:bg-gray-700 focus:outline-none focus:ring-2 focus:ring-gray-500 transition duration-150 ease-in-out shadow-md">
+                Close
+            </button>
+            <button type="button"
+                    @click="copySnippet()"
+                    class="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 transition duration-150 ease-in-out shadow-md">
+                Copy Snippet
+            </button>
+        </div>
+    </div>
+</div>
+
