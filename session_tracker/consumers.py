@@ -93,8 +93,6 @@ class SessionConsumer(AsyncWebsocketConsumer):
         logger.info(f"SessionConsumer: Received data in session {self.session_id}")
 
         text_data_json = json.loads(text_data)
-        action = text_data_json.get('action')
-
         events = text_data_json.get('events')
         user_id = text_data_json.get('user_id')
         site_id = text_data_json.get('site_id')
@@ -106,23 +104,33 @@ class SessionConsumer(AsyncWebsocketConsumer):
         except Site.DoesNotExist:
             logger.error(f"SessionConsumer: Site with id {site_id} does not exist.")
             await self.send(text_data=json.dumps({'status': 'error', 'message': 'Site does not exist'}))
+            return
 
-        # Fetch or create the session and check if it's been inactive for too long
-        session, created = await sync_to_async(UserSession.objects.get_or_create)(
-            session_id=self.session_id,
-            site=site,
-            live=True,
-            defaults={'user_id': user_id, 'events': events}
-        )
+        # Check if the session already exists
+        try:
+            session = await sync_to_async(UserSession.objects.get)(session_id=self.session_id)
+            session.live = True
+            await sync_to_async(session.save)()
+            create_session = False
+        except UserSession.DoesNotExist:
+            session = None
+            create_session = True
 
-        if not created:
+        if create_session:
+            # Create a new session
+            session = await sync_to_async(UserSession.objects.create)(
+                session_id=self.session_id,
+                site=site,
+                user_id=user_id,
+                events=events,
+                live=True
+            )
+            logger.info(f"SessionConsumer: New session created with ID {self.session_id}")
+        else:
             # Check if the session has been inactive for more than the threshold
-            # Ensure both datetimes are timezone-aware in UTC
             updated_at_aware = session.updated_at.astimezone(pytz.UTC)
             current_time_utc = datetime.now(pytz.UTC)
-
-            # Check if the session is inactive
-            is_session_inactive: bool = current_time_utc - updated_at_aware > timedelta(minutes=self.SESSION_TIMEOUT)
+            is_session_inactive = current_time_utc - updated_at_aware > timedelta(minutes=self.SESSION_TIMEOUT)
 
             if is_session_inactive:
                 # Mark the current session as ended
@@ -142,8 +150,9 @@ class SessionConsumer(AsyncWebsocketConsumer):
                 # Create a new session for continued recording
                 new_session = await sync_to_async(UserSession.objects.create)(
                     session_id=new_session_id,
+                    site=site,
                     user_id=user_id,
-                    events=events,  # Start new session with current events
+                    events=events,
                     live=True
                 )
 
@@ -157,13 +166,10 @@ class SessionConsumer(AsyncWebsocketConsumer):
                 await self.notify_live_status(True)
 
                 logger.info(f"SessionConsumer: New session {self.session_id} started.")
-
             else:
                 # If the session is still active, continue recording events
                 session.events.extend(events)
                 await sync_to_async(session.save)()
-        else:
-            logger.info(f"SessionConsumer: New session created with ID {self.session_id}")
 
         await self.notify_live_status(True)
 

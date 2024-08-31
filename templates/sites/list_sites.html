@@ -3,6 +3,7 @@
     {% include 'layout/messages.html' %}
 
     <!-- Button to add a new site -->
+    <div class="bg-gray-800 text-white p-4 border-r border-gray-700">
   <div class="mb-4 flex justify-end">
     <button hx-get="{% url 'create_site' %}" hx-target="#list-sites-container-content" hx-swap="outerHTML"
             class="px-4 py-2 bg-indigo-600 text-white font-semibold rounded hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-indigo-500 shadow-md transition duration-150 ease-in-out">
@@ -23,7 +24,7 @@
             <p class="text-center text-gray-500">No sites found.</p>
         {% endif %}
     </div>
-
+    </div>
 
     <!-- Placeholder for HTMX form -->
     <div id="site-form" class="mt-6"></div>
