@@ -28,10 +28,13 @@ def generate_site_key(user_id: int) -> str:
 class Site(models.Model):
     user = models.ForeignKey(User, on_delete=models.CASCADE, related_name='sites')
     name = models.CharField(max_length=255)
-    domain = models.CharField(max_length=255, unique=True)
+    domain = models.CharField(max_length=255, unique=True, blank=True, null=True)
     key = models.CharField(max_length=64, unique=True, blank=True, null=True)
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
+
+    def sessions_count(self):
+        return self.sessions.count()
 
     def __str__(self):
         return self.name

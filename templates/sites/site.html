@@ -28,6 +28,9 @@
                     {% endif %}
                     No domain set.
                 </p>
+                <p class="text-gray-400">
+                    Sessions: {{ site.sessions_count }}
+                </p>
             </div>
             <div class="relative">
                 <button @click.stop="showOptions = !showOptions"
@@ -35,15 +38,16 @@
                     &#x22EE;
                 </button>
                 <div x-show="showOptions" @click.outside="showOptions = false"
-                     class="absolute right-0 mt-2 w-48 bg-white rounded-md shadow-lg z-20">
+                     x-cloak
+                     class="absolute right-0 mt-2 w-30 bg-gray-700 rounded-md shadow-lg z-20 p-1 justify-between ">
                     <button hx-get="{% url 'update_site' site.id %}" hx-target="#list-sites-container-content"
                             hx-swap="outerHTML"
-                            class="block px-4 py-2 text-gray-800 hover:bg-gray-200 w-full text-left">
+                            class="block px-4 py-2 bg-indigo-600 text-white font-semibold rounded hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-indigo-500 shadow-md transition duration-150 ease-in-out w-full text-left">
                         Edit
                     </button>
                     <button hx-get="{% url 'delete_site' site.id %}" hx-target="#list-sites-container-content"
                             hx-swap="outerHTML"
-                            class="block px-4 py-2 text-gray-800 hover:bg-gray-200 w-full text-left">
+                            class="block px-4 py-2 bg-red-600 text-white font-semibold rounded hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-red-500 shadow-md transition duration-150 ease-in-out w-full text-left">
                         Delete
                     </button>
                 </div>
