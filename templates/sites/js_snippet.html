@@ -22,15 +22,19 @@
     }
 
     .code-snippet .function {
-        color: #50fa7b; /* Green for functions */   
+        color: #50fa7b; /* Green for functions */
     }
 </style>
 <div class="code-snippet">
-    &lt;<span class="keyword">script</span> <span class="keyword">src</span>=<span class="string">"http://localhost:8000/static/record.js"</span>&gt;&lt;/<span
-        class="keyword">script</span>&gt;<br>
     &lt;<span class="keyword">script</span>&gt;<br>
-    &nbsp;&nbsp;<span class="function">(function ()</span> {<br>
-    &nbsp;&nbsp;&nbsp;&nbsp;window.<span class="keyword">recordConfig</span> = {<br>
+    &nbsp;&nbsp;<span class="function">(async function ()</span> {<br>
+    &nbsp;&nbsp;&nbsp;&nbsp;<span class="keyword">const</span> script = <span class="keyword">document</span>.<span
+        class="function">createElement</span>(<span class="string">'script'</span>);<br>
+    &nbsp;&nbsp;&nbsp;&nbsp;script.<span class="keyword">src</span> = <span class="string">'http://localhost:8000/static/record.js'</span>;<br>
+    &nbsp;&nbsp;&nbsp;&nbsp;script.<span class="keyword">async</span> = <span class="keyword">true</span>;<br>
+    &nbsp;&nbsp;&nbsp;&nbsp;<span class="keyword">document</span>.<span class="keyword">head</span>.<span
+        class="function">appendChild</span>(script);<br>
+    &nbsp;&nbsp;&nbsp;&nbsp;<span class="keyword">window</span>.<span class="keyword">recordConfig</span> = {<br>
     &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="keyword">userId</span>: <span
         class="number">{{ snippet.userId }}</span>,<br>
     &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="keyword">siteId</span>: <span
