@@ -27,15 +27,11 @@ class SessionConsumer(AsyncWebsocketConsumer):
         self.timezone = pytz.UTC
 
     async def connect(self):
-        # Extract the site_key from the query string
         query_string = self.scope['query_string'].decode()
         query_params = parse_qs(query_string)
         self.site_key = query_params.get('siteKey', [None])[0]
         self.site_id = query_params.get('siteId', [None])[0]
-
-        # Ensure session_id is correctly fetched
-        self.session_id = self.scope['url_route']['kwargs']['session_id']
-        self.group_name = f"session_{self.session_id}"
+        self.session_id = query_params.get('sessionId', [None])[0]
 
         # **Site Key Validation**
         site = await sync_to_async(self.validate_site_key)(self.site_id, self.site_key)
@@ -43,6 +39,13 @@ class SessionConsumer(AsyncWebsocketConsumer):
             logger.error(f"SessionConsumer: Invalid site key {self.site_key}. Disconnecting.")
             await self.close(code=4004)  # Use an appropriate close code
             return
+
+        # validate session id
+        if not await sync_to_async(self.is_session_id_valid)(self.session_id):
+            self.session_id = f"session_{secrets.token_urlsafe(16)}"
+
+        # Ensure session_id is correctly fetched
+        self.group_name = f"session_{self.session_id}"
 
         # Logging connection attempt
         logger.info(f"SessionConsumer: Connecting to session {self.session_id}")
@@ -54,7 +57,7 @@ class SessionConsumer(AsyncWebsocketConsumer):
         )
 
         # Mark the session as live
-        await self.set_session_live_status(True)
+        # await self.set_session_live_status(True)
 
         # Notify live status change if applicable
         await self.notify_live_status(True)
@@ -64,13 +67,18 @@ class SessionConsumer(AsyncWebsocketConsumer):
 
         await self.accept()
 
+        await self.send(text_data=json.dumps({
+            'type': 'session_id',
+            'message': self.session_id
+        }))
+
+    # @sync_to_async
     def validate_site_key(self, site_id, site_key):
         """Validate if the provided site_key belongs to the site."""
-        site: Site = Site.objects.get(id=site_id)
+        site = Site.objects.get(id=site_id)
         if site.key == site_key:
             return site
         return None
-
 
     async def disconnect(self, close_code):
         print("Disconnect method called")  # Temporary print statement for debugging
@@ -101,7 +109,7 @@ class SessionConsumer(AsyncWebsocketConsumer):
         site_id = text_data_json.get('site_id')
 
         try:
-            site: Site = await sync_to_async(Site.objects.get)(id=site_id)
+            site = await sync_to_async(Site.objects.get)(id=site_id)
         except Site.DoesNotExist:
             logger.error(f"SessionConsumer: Site with id {site_id} does not exist.")
             await self.send(text_data=json.dumps({'status': 'error', 'message': 'Site does not exist'}))
@@ -157,27 +165,16 @@ class SessionConsumer(AsyncWebsocketConsumer):
 
         await self.send(text_data=json.dumps({'status': 'success'}))
 
-    async def create_new_session(self, events, site, user_id):
-        # Generate a new session ID
-        new_session_id = f"session_{secrets.token_urlsafe(16)}"
-        self.session_id = new_session_id
-        self.group_name = f"session_{self.session_id}"
-
+    async def create_new_session(self, events, site, user_id, session_id=None):
         session = await sync_to_async(UserSession.objects.create)(
-            session_id=new_session_id,
+            session_id=self.session_id,
             site=site,
             user_id=user_id,
             events=events,
             live=True
         )
-        # Join the new session group
-        await self.channel_layer.group_add(
-            self.group_name,
-            self.channel_name
-        )
 
         logger.info(f"SessionConsumer: New session {self.session_id} started.")
-
 
     async def set_session_live_status(self, is_live):
         logger.info(f"SessionConsumer: Setting live status to {is_live} for session {self.session_id}")
@@ -204,6 +201,27 @@ class SessionConsumer(AsyncWebsocketConsumer):
                 "session_id": self.session_id
             }
         )
+
+    def is_session_id_valid(self, session_id):
+        """Check if the session ID is valid."""
+
+        # Check if the session ID is not None
+        if not session_id:
+            return False
+
+        # Check if the session ID is not empty
+        if not session_id.strip():
+            return False
+
+        # Check if the session ID is not too long
+        if len(session_id) > 255:
+            return False
+
+        # Check if session id does not belong to the current site
+        if not UserSession.objects.filter(session_id=session_id, site_id=self.site_id).exists():
+            return False
+
+        return True
 
 
 class SessionUpdatesConsumer(AsyncWebsocketConsumer):

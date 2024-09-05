@@ -1,9 +1,19 @@
-(function () {
+(async function () {
     const REQUIRED_CONFIG_KEYS = ['userId', 'siteId', 'siteKey'];
     const COOKIE_NAMES = ['sessionid', 'authToken', 'JSESSIONID', 'csrftoken'];
     const TOKEN_NAMES = ['authToken', 'sessionToken', 'jwtToken', 'accessToken'];
 
-    function initializeRecording() {
+    async function loadRrwebScript() {
+        return new Promise((resolve, reject) => {
+            const script = document.createElement('script');
+            script.src = 'https://cdn.jsdelivr.net/npm/rrweb@latest/dist/rrweb.min.js';
+            script.onload = resolve;
+            script.onerror = reject;
+            document.head.appendChild(script);
+        });
+    }
+
+    async function initializeRecording() {
         const config = window.recordConfig;
 
         if (!isValidConfig(config)) {
@@ -13,8 +23,12 @@
 
         const {userId, siteId, siteKey, enableFallback = true} = config;
 
-        const sessionId = getOrCreateSessionId();
+        const sessionId = getCookie('recording_session_id');
         const sessionIsActive = isSessionActive(config.checkSession);
+
+        if (sessionId) {
+            console.log("Session ID found in cookie:", sessionId);
+        }
 
         if (!sessionIsActive && !enableFallback) {
             console.log("No active session detected and fallback is disabled. Event recording will not start.");
@@ -24,8 +38,6 @@
         if (!sessionIsActive && enableFallback) {
             console.log("No active session detected, but fallback is enabled. Recording will start.");
         }
-
-        console.log('User ID:', userId);
 
         const socket = setupWebSocketConnection(userId, siteId, siteKey, sessionId);
         startRecording(socket, userId, siteId, siteKey);
@@ -59,18 +71,6 @@
         document.cookie = `${name}=${encodeURIComponent(value)}; expires=${expires}; path=/; SameSite=None; Secure`;
     }
 
-    function getOrCreateSessionId() {
-        let sessionId = getCookie('recording_session_id');
-        if (!sessionId) {
-            sessionId = 'session_' + Math.random().toString(36).substr(2, 9);
-            setCookie('recording_session_id', sessionId, 8);
-            console.log('New Session ID:', sessionId);
-        } else {
-            console.log('Existing Session ID:', sessionId);
-        }
-        return sessionId;
-    }
-
     function isSessionActive(customCheck) {
         if (typeof customCheck === 'function') return customCheck();
 
@@ -83,10 +83,28 @@
     }
 
     function setupWebSocketConnection(userId, siteId, siteKey, sessionId) {
-        const socket = new WebSocket(`ws://localhost:8000/ws/record-session/${sessionId}/?siteId=${siteId}&siteKey=${siteKey}`);
+        let params = undefined;
+        if (sessionId) {
+            params = `?siteId=${siteId}&siteKey=${siteKey}&sessionId=${sessionId}`;
+        } else {
+            params = `?siteId=${siteId}&siteKey=${siteKey}`;
+        }
+
+        console.log("session id:", sessionId);
+
+        const socket = new WebSocket(`ws://localhost:8000/ws/record-session/${params}`);
 
         socket.onopen = () => console.log("WebSocket connection opened");
-        socket.onmessage = event => console.log("Message from server:", event.data);
+        socket.onmessage = event => {
+            console.log("Message from server:", event.data);
+            const data = JSON.parse(event.data);
+            console.log("Message: ", data.message);
+            if (data.message) {
+                sessionId = data.message;
+                setCookie('recording_session_id', sessionId, 8);
+                console.log('Session ID received and stored:', sessionId);
+            }
+        };
         socket.onclose = () => console.log("WebSocket connection closed");
 
         return socket;
@@ -135,4 +153,6 @@
         console.error("Configuration object not found within the timeout period. Event recording will not start.");
     }, 20000);
 
+    await loadRrwebScript();
+    checkConfigAndInitialize();
 })();
