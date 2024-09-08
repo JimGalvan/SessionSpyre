@@ -7,12 +7,12 @@
             <h2 class="text-lg font-semibold mb-4">Sessions</h2>
             <div class="flex items-center mb-4">
                 <input type="date" id="session-date-picker" class="p-2 bg-gray-700 text-white rounded flex-grow"
-                       value="{{ current_date|date:'Y-m-d' }}"/>
+                       value="{{ today_date|date:'Y-m-d' }}"/>
             </div>
             <div
                     hx-get="{% url 'sessions_list' site_id=site.id %}"
                     hx-vals='js:{date: document.getElementById("session-date-picker").value}'
-                    hx-trigger="every 2s, session-created, change from:#session-date-picker"
+                    hx-trigger="every 10s, session-created, change from:#session-date-picker"
                     hx-target="#sessions_list"
                     hx-ext="alpine-morph"
                     hx-swap="morph"
