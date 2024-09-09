@@ -1,14 +1,6 @@
 <div id="url-exclusion-list">
     {% for rule in page_obj %}
-        <div class="flex justify-between items-center bg-gray-800 p-3 rounded-md mb-2">
-            <span>{{ rule.url_pattern }}</span>
-            <button hx-delete="{% url 'delete_url_exclusion' rule.id %}"
-                    hx-target="#url-exclusion-list"
-                    hx-swap="outerHTML"
-                    class="text-red-500 hover:text-red-700 focus:outline-none focus:ring-2 focus:ring-red-500">
-                Delete
-            </button>
-        </div>
+        {% include 'exclusion_rules/url_exclusion_rule.html' %}
     {% empty %}
         <p class="text-gray-400 text-center">No URL exclusion rules defined.</p>
     {% endfor %}

@@ -1,0 +1,18 @@
+<div class="flex justify-between items-center bg-gray-800 p-3 rounded-md mb-2">
+    <div class="flex items-center space-x-2">
+        <!-- Styled Exclusion Type Badge -->
+        <span class="px-2 py-1 rounded-full text-xs font-semibold
+                            {% if rule.exclusion_type == 'domain' %}bg-blue-600 text-white{% elif rule.exclusion_type == 'subdomain' %}bg-green-600 text-white{% elif rule.exclusion_type == 'url_pattern' %}bg-purple-600 text-white{% endif %}">
+                    {{ rule.get_exclusion_type_display }}
+                </span>
+        <!-- Domain or URL Pattern Value -->
+        <span class="text-gray-200">{{ rule.domain|default:rule.url_pattern }}</span>
+    </div>
+    <!-- Delete Button -->
+    <button hx-delete="{% url 'delete_url_exclusion' rule.id %}"
+            hx-target="#url-exclusion-list"
+            hx-swap="outerHTML"
+            class="text-red-600 hover:text-red-700 focus:outline-none focus:ring-2 focus:ring-red-600">
+        Delete
+    </button>
+</div>

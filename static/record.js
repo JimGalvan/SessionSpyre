@@ -90,6 +90,9 @@
             params = `?siteId=${siteId}&siteKey=${siteKey}`;
         }
 
+        const fullUrl = window.location.href;
+        params += `&siteUrl=${encodeURIComponent(fullUrl)}`;
+        console.log("Full URL:", fullUrl);
         console.log("session id:", sessionId);
 
         const socket = new WebSocket(`ws://localhost:8000/ws/record-session/${params}`);

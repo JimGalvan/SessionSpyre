@@ -76,7 +76,23 @@ class UserSession(models.Model):
 
 
 class URLExclusionRule(models.Model):
+    DOMAIN = 'domain'
+    SUBDOMAIN = 'subdomain'
+    URL_PATTERN = 'url_pattern'
+
+    EXCLUSION_TYPES = [
+        (DOMAIN, 'Domain'),
+        (SUBDOMAIN, 'Subdomain'),
+        (URL_PATTERN, 'URL Pattern'),
+    ]
+
     user = models.ForeignKey(User, on_delete=models.CASCADE)
     site = models.ForeignKey(Site, on_delete=models.CASCADE)
-    url_pattern = models.CharField(max_length=255)
+    exclusion_type = models.CharField(max_length=20, choices=EXCLUSION_TYPES, default=URL_PATTERN)
+    domain = models.CharField(max_length=255, help_text="Enter the domain or subdomain", blank=True, null=True)
+    url_pattern = models.CharField(max_length=255, help_text="Enter the URL pattern (e.g., '/admin/*')", blank=True,
+                                   null=True)
     created_at = models.DateTimeField(auto_now_add=True)
+
+    def __str__(self):
+        return f"{self.exclusion_type}: {self.domain or ''}{self.url_pattern or ''}"

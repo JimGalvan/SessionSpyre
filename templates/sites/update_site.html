@@ -28,14 +28,28 @@
         <form method="post" hx-post="{% url 'add_url_exclusion' site.id %}" hx-target="#url-exclusion-list"
               hx-swap="outerHTML">
             {% csrf_token %}
-            <div class="flex space-x-2 items-center">
-                <input type="text" name="url_pattern" placeholder="Enter URL pattern (e.g., /admin/*)"
-                       class="mt-1 block w-3/4 px-3 py-2 border border-gray-500 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 bg-gray-700 text-white"
+            <div class="flex flex-col space-y-4">
+                <!-- Dropdown for Exclusion Type -->
+                <select name="exclusion_type"
+                        class="mt-1 block w-full px-3 py-2 border border-gray-500 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 bg-gray-700 text-white">
+                    <option value="url_pattern">URL Pattern</option>
+                    <option value="domain">Domain</option>
+                    <option value="subdomain">Subdomain</option>
+                </select>
+
+                <!-- Input Field for URL Pattern or Domain -->
+                <input type="text" name="url_pattern"
+                       placeholder="Enter URL pattern (e.g., /admin/*) or domain (e.g., www.site.com)"
+                       class="mt-1 block w-full px-3 py-2 border border-gray-500 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 bg-gray-700 text-white"
                        required>
-                <button type="submit"
-                        class="py-2 px-4 w-1/4 bg-indigo-600 text-white font-semibold rounded-md hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-indigo-500 shadow-md transition duration-150 ease-in-out">
-                    Add
-                </button>
+
+                <!-- Add Rule Button (on a new line) -->
+                <div class="flex justify-end">
+                    <button type="submit"
+                            class="py-2 px-4 bg-indigo-600 text-white font-semibold rounded-md hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-indigo-500 shadow-md transition duration-150 ease-in-out">
+                        Add Rule
+                    </button>
+                </div>
             </div>
         </form>
 
@@ -48,6 +62,5 @@
                 {% endif %}
         {% include 'exclusion_rules/url_exclusion_list.html' %}
         </div>
-
     </div>
 </div>

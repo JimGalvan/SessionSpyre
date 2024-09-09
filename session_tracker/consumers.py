@@ -1,14 +1,16 @@
+import fnmatch
 import json
 import logging
 import secrets
 from datetime import datetime, timedelta
+from fnmatch import fnmatch
 from urllib.parse import parse_qs
 
 import pytz
 from asgiref.sync import sync_to_async
 from channels.generic.websocket import AsyncWebsocketConsumer
 
-from .models import UserSession, Site
+from .models import UserSession, Site, URLExclusionRule
 
 logger = logging.getLogger(__name__)
 
@@ -17,7 +19,8 @@ class SessionConsumer(AsyncWebsocketConsumer):
     SESSION_TIMEOUT = 30  # Timeout in minutes for the session
 
     def __init__(self, *args, **kwargs):
-        super().__init__(args, kwargs)
+        super().__init__(*args, **kwargs)
+        self.site_url = None
         self.site_id = None
         self.connection_closed = None
         self.site_key = None
@@ -32,15 +35,26 @@ class SessionConsumer(AsyncWebsocketConsumer):
         self.site_key = query_params.get('siteKey', [None])[0]
         self.site_id = query_params.get('siteId', [None])[0]
         self.session_id = query_params.get('sessionId', [None])[0]
+        self.site_url = query_params.get('siteUrl', [None])[0]
 
         # **Site Key Validation**
         site = await sync_to_async(self.validate_site_key)(self.site_id, self.site_key)
         if not site:
             logger.error(f"SessionConsumer: Invalid site key {self.site_key}. Disconnecting.")
-            await self.close(code=4004)  # Use an appropriate close code
+            await self.close(code=4004)
             return
 
-        # validate session id
+        # Validate URL exclusion rules
+        user = await sync_to_async(lambda: site.user)()
+        exclusion_rules = await sync_to_async(self.get_exclusion_rules)(user, site)
+
+        # Check if the current URL should be excluded from recording
+        if await sync_to_async(self.is_domain_or_subdomain_excluded)(self.site_url, exclusion_rules):
+            logger.info(f"SessionConsumer: URL {self.scope['path']} is excluded from tracking.")
+            await self.close(code=4004)
+            return
+
+        # Validate session ID
         if not await sync_to_async(self.is_session_id_valid)(self.session_id):
             self.session_id = f"session_{secrets.token_urlsafe(16)}"
 
@@ -55,9 +69,6 @@ class SessionConsumer(AsyncWebsocketConsumer):
             self.group_name,
             self.channel_name
         )
-
-        # Mark the session as live
-        # await self.set_session_live_status(True)
 
         # Notify live status change if applicable
         await self.notify_live_status(True)
@@ -75,10 +86,46 @@ class SessionConsumer(AsyncWebsocketConsumer):
     # @sync_to_async
     def validate_site_key(self, site_id, site_key):
         """Validate if the provided site_key belongs to the site."""
-        site = Site.objects.get(id=site_id)
-        if site.key == site_key:
-            return site
+        try:
+            site = Site.objects.get(id=site_id)
+            if site.key == site_key:
+                return site
+        except Site.DoesNotExist:
+            return None
         return None
+
+    def get_exclusion_rules(self, user, site):
+        """Fetch exclusion rules for the given user and site."""
+        return URLExclusionRule.objects.filter(user=user, site=site).all()
+
+    async def is_domain_or_subdomain_excluded(self, site_url, exclusion_rules):
+        for rule in exclusion_rules:
+            if rule.exclusion_type == 'domain' and fnmatch.fnmatch(site_url, rule.domain):
+                return True
+            elif rule.exclusion_type == 'subdomain' and fnmatch.fnmatch(site_url, rule.domain):
+                return True
+        return True
+
+    def is_session_id_valid(self, session_id):
+        """Check if the session ID is valid."""
+
+        # Check if the session ID is not None
+        if not session_id:
+            return False
+
+        # Check if the session ID is not empty
+        if not session_id.strip():
+            return False
+
+        # Check if the session ID is not too long
+        if len(session_id) > 255:
+            return False
+
+        # Check if session id does not belong to the current site
+        if not UserSession.objects.filter(session_id=session_id, site_id=self.site_id).exists():
+            return False
+
+        return True
 
     async def disconnect(self, close_code):
         print("Disconnect method called")  # Temporary print statement for debugging
@@ -201,27 +248,6 @@ class SessionConsumer(AsyncWebsocketConsumer):
                 "session_id": self.session_id
             }
         )
-
-    def is_session_id_valid(self, session_id):
-        """Check if the session ID is valid."""
-
-        # Check if the session ID is not None
-        if not session_id:
-            return False
-
-        # Check if the session ID is not empty
-        if not session_id.strip():
-            return False
-
-        # Check if the session ID is not too long
-        if len(session_id) > 255:
-            return False
-
-        # Check if session id does not belong to the current site
-        if not UserSession.objects.filter(session_id=session_id, site_id=self.site_id).exists():
-            return False
-
-        return True
 
 
 class SessionUpdatesConsumer(AsyncWebsocketConsumer):

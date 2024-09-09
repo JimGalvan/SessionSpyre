@@ -34,8 +34,26 @@ def add_url_exclusion(request, site_id):
     if not url_pattern:
         return HttpResponseBadRequest("URL pattern is required")
 
-    # Create and save the exclusion rule
-    URLExclusionRule.objects.create(site=site, user=request.user, url_pattern=url_pattern)
+    # Check if the number of exclusion rules has reached the limit
+    if URLExclusionRule.objects.filter(site=site).count() >= 20:
+        return HttpResponseBadRequest("You have reached the limit of 20 exclusion rules")
+
+    # Get form data
+    exclusion_type = request.POST.get('exclusion_type')
+    value = request.POST.get('url_pattern')  # This will contain the domain or URL pattern
+
+    # Validation
+    if not exclusion_type or not value:
+        return HttpResponseBadRequest("Both exclusion type and value are required.")
+
+    # Create the exclusion rule based on type
+    URLExclusionRule.objects.create(
+        user=request.user,
+        site=site,
+        exclusion_type=exclusion_type,
+        domain=value if exclusion_type in ['domain', 'subdomain'] else None,
+        url_pattern=value if exclusion_type == 'url_pattern' else None
+    )
 
     # Return the updated list of rules as a partial HTML to be swapped in HTMX
     exclusion_rules = URLExclusionRule.objects.filter(site=site)
