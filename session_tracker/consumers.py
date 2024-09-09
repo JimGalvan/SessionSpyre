@@ -3,16 +3,65 @@ import json
 import logging
 import secrets
 from datetime import datetime, timedelta
-from fnmatch import fnmatch
 from urllib.parse import parse_qs
 
 import pytz
 from asgiref.sync import sync_to_async
 from channels.generic.websocket import AsyncWebsocketConsumer
+from django.contrib.auth.models import User
 
 from .models import UserSession, Site, URLExclusionRule
 
 logger = logging.getLogger(__name__)
+
+
+def validate_site_key(site_id, site_key):
+    """Validate if the provided site_key belongs to the site."""
+    try:
+        site = Site.objects.get(id=site_id)
+        if site.key == site_key:
+            return site
+    except Site.DoesNotExist:
+        return None
+    return None
+
+
+def get_exclusion_rules(user_id, site_id):
+    """Fetch exclusion rules for the given user and site."""
+    return URLExclusionRule.objects.filter(user_id=user_id, site_id=site_id).all()
+    # return URLExclusionRule.objects.filter(user=user, site=site).all()
+
+
+from urllib.parse import urlparse
+
+
+def normalize_domain(domain):
+    if not domain.startswith(('http://', 'https://')):
+        domain = 'http://' + domain
+    parsed_domain = urlparse(domain)
+    return parsed_domain.hostname, parsed_domain.port
+
+
+async def is_domain_or_subdomain_excluded(site_url, exclusion_rules):
+    parsed_url = urlparse(site_url)
+    normalized_site_hostname, normalized_site_port = parsed_url.hostname, parsed_url.port
+
+    for rule in exclusion_rules:
+        rule_domain_hostname, rule_domain_port = await sync_to_async(normalize_domain)(rule.domain)
+        normalized_rule_hostname, normalized_rule_port = normalize_domain(rule_domain_hostname)
+
+        if rule.exclusion_type == 'domain' and fnmatch.fnmatch(normalized_site_hostname, normalized_rule_hostname):
+            return True
+        elif rule.exclusion_type == 'subdomain' and fnmatch.fnmatch(normalized_site_hostname, normalized_rule_hostname):
+            return True
+    return False
+
+
+async def is_url_pattern_excluded(self, path, exclusion_rules):
+    for rule in exclusion_rules:
+        if rule.exclusion_type == 'url_pattern' and fnmatch.fnmatch(path, rule.url_pattern):
+            return True
+    return False
 
 
 class SessionConsumer(AsyncWebsocketConsumer):
@@ -38,18 +87,19 @@ class SessionConsumer(AsyncWebsocketConsumer):
         self.site_url = query_params.get('siteUrl', [None])[0]
 
         # **Site Key Validation**
-        site = await sync_to_async(self.validate_site_key)(self.site_id, self.site_key)
+        site = await sync_to_async(validate_site_key)(self.site_id, self.site_key)
         if not site:
             logger.error(f"SessionConsumer: Invalid site key {self.site_key}. Disconnecting.")
             await self.close(code=4004)
             return
 
         # Validate URL exclusion rules
-        user = await sync_to_async(lambda: site.user)()
-        exclusion_rules = await sync_to_async(self.get_exclusion_rules)(user, site)
+        user = await sync_to_async(User.objects.get)(id=site.user_id)
+        user_id: str = user.id
+        exclusion_rules = await sync_to_async(get_exclusion_rules)(user_id, self.site_id)
 
         # Check if the current URL should be excluded from recording
-        if await sync_to_async(self.is_domain_or_subdomain_excluded)(self.site_url, exclusion_rules):
+        if await is_domain_or_subdomain_excluded(self.site_url, exclusion_rules):
             logger.info(f"SessionConsumer: URL {self.scope['path']} is excluded from tracking.")
             await self.close(code=4004)
             return
@@ -82,29 +132,6 @@ class SessionConsumer(AsyncWebsocketConsumer):
             'type': 'session_id',
             'message': self.session_id
         }))
-
-    # @sync_to_async
-    def validate_site_key(self, site_id, site_key):
-        """Validate if the provided site_key belongs to the site."""
-        try:
-            site = Site.objects.get(id=site_id)
-            if site.key == site_key:
-                return site
-        except Site.DoesNotExist:
-            return None
-        return None
-
-    def get_exclusion_rules(self, user, site):
-        """Fetch exclusion rules for the given user and site."""
-        return URLExclusionRule.objects.filter(user=user, site=site).all()
-
-    async def is_domain_or_subdomain_excluded(self, site_url, exclusion_rules):
-        for rule in exclusion_rules:
-            if rule.exclusion_type == 'domain' and fnmatch.fnmatch(site_url, rule.domain):
-                return True
-            elif rule.exclusion_type == 'subdomain' and fnmatch.fnmatch(site_url, rule.domain):
-                return True
-        return True
 
     def is_session_id_valid(self, session_id):
         """Check if the session ID is valid."""

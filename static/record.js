@@ -90,9 +90,9 @@
             params = `?siteId=${siteId}&siteKey=${siteKey}`;
         }
 
-        const fullUrl = window.location.href;
-        params += `&siteUrl=${encodeURIComponent(fullUrl)}`;
-        console.log("Full URL:", fullUrl);
+        const siteUrl = window.location.href;
+        params += `&siteUrl=${encodeURIComponent(siteUrl)}`;
+        console.log("Full URL:", siteUrl);
         console.log("session id:", sessionId);
 
         const socket = new WebSocket(`ws://localhost:8000/ws/record-session/${params}`);
@@ -120,7 +120,12 @@
             emit(event) {
                 events.push(event);
                 if (events.length >= 10) {
-                    socket.send(JSON.stringify({user_id: userId, site_id: siteId, events}));
+                    socket.send(JSON.stringify({
+                        user_id: userId,
+                        site_id: siteId,
+                        current_site_url: window.location.href,
+                        events
+                    }));
                     events = [];
                 }
             },
@@ -135,7 +140,13 @@
 
         window.addEventListener('beforeunload', () => {
             if (events.length > 0) {
-                socket.send(JSON.stringify({user_id: userId, events, site_id: siteId}));
+
+                socket.send(JSON.stringify({
+                    user_id: userId,
+                    site_id: siteId,
+                    current_site_url: window.location.href,
+                    events,
+                }));
             }
             stopRecording();
             socket.close();
