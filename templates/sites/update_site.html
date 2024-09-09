@@ -1,6 +1,8 @@
 {% include 'layout/messages.html' %}
 <div class="w-full max-w-md mx-auto bg-gray-900 text-white shadow-lg rounded-lg p-8 mt-4">
-    <h1 class="text-2xl font-semibold text-center mb-6">Update Site</h1>
+    <h1 class="text-2xl font-semibold text-center mb-6">Options Site</h1>
+
+    <!-- Update Site Form -->
     <form method="post" hx-post="{% url 'update_site' site.id %}" hx-target="#list-sites-container" hx-swap="innerHTML">
         {% csrf_token %}
         <div>
@@ -18,4 +20,34 @@
             </button>
         </div>
     </form>
+
+    <!-- URL Exclusion Rules Section -->
+    <div class="mt-8">
+        <h2 class="text-xl font-semibold text-center mb-4">URL Exclusion Rules</h2>
+
+        <form method="post" hx-post="{% url 'add_url_exclusion' site.id %}" hx-target="#url-exclusion-list"
+              hx-swap="outerHTML">
+            {% csrf_token %}
+            <div class="flex space-x-2 items-center">
+                <input type="text" name="url_pattern" placeholder="Enter URL pattern (e.g., /admin/*)"
+                       class="mt-1 block w-3/4 px-3 py-2 border border-gray-500 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 bg-gray-700 text-white"
+                       required>
+                <button type="submit"
+                        class="py-2 px-4 w-1/4 bg-indigo-600 text-white font-semibold rounded-md hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-indigo-500 shadow-md transition duration-150 ease-in-out">
+                    Add
+                </button>
+            </div>
+        </form>
+
+        <div id="url-exclusion-wrapper" class="mt-6"
+                {% if site.id %}
+             hx-get="{% url 'get_url_exclusions' site.id %}"
+             hx-trigger="load"
+             hx-target="#url-exclusion-list"
+             hx-swap="outerHTML">
+                {% endif %}
+        {% include 'exclusion_rules/url_exclusion_list.html' %}
+        </div>
+
+    </div>
 </div>

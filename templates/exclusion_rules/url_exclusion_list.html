@@ -1,0 +1,54 @@
+<div id="url-exclusion-list">
+    {% for rule in page_obj %}
+        <div class="flex justify-between items-center bg-gray-800 p-3 rounded-md mb-2">
+            <span>{{ rule.url_pattern }}</span>
+            <button hx-delete="{% url 'delete_url_exclusion' rule.id %}"
+                    hx-target="#url-exclusion-list"
+                    hx-swap="outerHTML"
+                    class="text-red-500 hover:text-red-700 focus:outline-none focus:ring-2 focus:ring-red-500">
+                Delete
+            </button>
+        </div>
+    {% empty %}
+        <p class="text-gray-400 text-center">No URL exclusion rules defined.</p>
+    {% endfor %}
+    <div class="pagination flex justify-center items-center space-x-2 mt-4">
+        {% if page_obj.has_previous %}
+            <button hx-get="{% url 'get_url_exclusions' site.id %}?page=1"
+                    hx-target="#url-exclusion-list"
+                    hx-swap="outerHTML"
+                    type="button"
+                    class="px-3 py-1 bg-gray-600 text-white rounded hover:bg-gray-700 focus:outline-none focus:ring-2 focus:ring-gray-600">
+                First
+            </button>
+            <button hx-get="{% url 'get_url_exclusions' site.id %}?page={{ page_obj.previous_page_number }}"
+                    hx-target="#url-exclusion-list"
+                    hx-swap="outerHTML"
+                    type="button"
+                    class="px-3 py-1 bg-gray-600 text-white rounded hover:bg-gray-700 focus:outline-none focus:ring-2 focus:ring-gray-600">
+                Previous
+            </button>
+        {% endif %}
+
+        <span class="current text-white px-3">
+            Page {{ page_obj.number }} of {{ page_obj.paginator.num_pages }}.
+        </span>
+
+        {% if page_obj.has_next %}
+            <button hx-get="{% url 'get_url_exclusions' site.id %}?page={{ page_obj.next_page_number }}"
+                    hx-target="#url-exclusion-list"
+                    hx-swap="outerHTML"
+                    type="button"
+                    class="px-3 py-1 bg-gray-600 text-white rounded hover:bg-gray-700 focus:outline-none focus:ring-2 focus:ring-gray-600">
+                Next
+            </button>
+            <button hx-get="{% url 'get_url_exclusions' site.id %}?page={{ page_obj.paginator.num_pages }}"
+                    hx-target="#url-exclusion-list"
+                    hx-swap="outerHTML"
+                    type="button"
+                    class="px-3 py-1 bg-gray-600 text-white rounded hover:bg-gray-700 focus:outline-none focus:ring-2 focus:ring-gray-600">
+                Last
+            </button>
+        {% endif %}
+    </div>
+</div>

@@ -73,3 +73,10 @@ class UserSession(models.Model):
     @property
     def get_events_json(self):
         return json.dumps(self.events)
+
+
+class URLExclusionRule(models.Model):
+    user = models.ForeignKey(User, on_delete=models.CASCADE)
+    site = models.ForeignKey(Site, on_delete=models.CASCADE)
+    url_pattern = models.CharField(max_length=255)
+    created_at = models.DateTimeField(auto_now_add=True)
