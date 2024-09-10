@@ -4,6 +4,7 @@ import logging
 import secrets
 from datetime import datetime, timedelta
 from urllib.parse import parse_qs
+from urllib.parse import urlparse
 
 import pytz
 from asgiref.sync import sync_to_async
@@ -15,24 +16,18 @@ from .models import UserSession, Site, URLExclusionRule
 logger = logging.getLogger(__name__)
 
 
-def validate_site_key(site_id, site_key):
+async def validate_site_key(site_id, site_key):
     """Validate if the provided site_key belongs to the site."""
-    try:
-        site = Site.objects.get(id=site_id)
-        if site.key == site_key:
-            return site
-    except Site.DoesNotExist:
-        return None
-    return None
+    return await Site.objects.filter(id=site_id, key=site_key).afirst()
 
 
-def get_exclusion_rules(user_id, site_id):
-    """Fetch exclusion rules for the given user and site."""
-    return URLExclusionRule.objects.filter(user_id=user_id, site_id=site_id).all()
-    # return URLExclusionRule.objects.filter(user=user, site=site).all()
-
-
-from urllib.parse import urlparse
+async def get_exclusion_rules(user_id, site_id):
+    """Fetch exclusion rules for the given user and site asynchronously."""
+    exclusion_rules_dtos = []
+    async for rule in URLExclusionRule.objects.filter(user_id=user_id, site_id=site_id).all():
+        print(rule)
+        exclusion_rules_dtos.append(URLExclusionRuleDto(rule.domain, rule.exclusion_type))
+    return exclusion_rules_dtos
 
 
 def normalize_domain(domain):
@@ -44,24 +39,50 @@ def normalize_domain(domain):
 
 async def is_domain_or_subdomain_excluded(site_url, exclusion_rules):
     parsed_url = urlparse(site_url)
-    normalized_site_hostname, normalized_site_port = parsed_url.hostname, parsed_url.port
+    site_hostname = parsed_url.hostname
 
     for rule in exclusion_rules:
-        rule_domain_hostname, rule_domain_port = await sync_to_async(normalize_domain)(rule.domain)
-        normalized_rule_hostname, normalized_rule_port = normalize_domain(rule_domain_hostname)
-
-        if rule.exclusion_type == 'domain' and fnmatch.fnmatch(normalized_site_hostname, normalized_rule_hostname):
+        rule_domain_hostname, _ = normalize_domain(rule.domain)
+        if rule.exclusion_type == 'domain' and fnmatch.fnmatch(site_hostname, rule_domain_hostname):
             return True
-        elif rule.exclusion_type == 'subdomain' and fnmatch.fnmatch(normalized_site_hostname, normalized_rule_hostname):
+        elif rule.exclusion_type == 'subdomain' and fnmatch.fnmatch(site_hostname, rule_domain_hostname):
             return True
     return False
 
 
-async def is_url_pattern_excluded(self, path, exclusion_rules):
+async def is_url_pattern_excluded(path, exclusion_rules):
     for rule in exclusion_rules:
         if rule.exclusion_type == 'url_pattern' and fnmatch.fnmatch(path, rule.url_pattern):
             return True
     return False
+
+
+async def is_session_id_valid(session_id, site_id):
+    """Check if the session ID is valid."""
+
+    # Check if the session ID is not None
+    if not session_id:
+        return False
+
+    # Check if the session ID is not empty
+    if not session_id.strip():
+        return False
+
+    # Check if the session ID is not too long
+    if len(session_id) > 255:
+        return False
+
+    # Check if session id does not belong to the current site
+    if not await UserSession.objects.filter(session_id=session_id, site_id=site_id).aexists():
+        return False
+
+    return True
+
+
+class URLExclusionRuleDto:
+    def __init__(self, domain, exclusion_type):
+        self.domain = domain
+        self.exclusion_type = exclusion_type
 
 
 class SessionConsumer(AsyncWebsocketConsumer):
@@ -69,14 +90,13 @@ class SessionConsumer(AsyncWebsocketConsumer):
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
+        self.user_id = None
         self.site_url = None
         self.site_id = None
         self.connection_closed = None
         self.site_key = None
         self.group_name = None
         self.session_id = None
-        self.live_session_group_postfix = "live_session"
-        self.timezone = pytz.UTC
 
     async def connect(self):
         query_string = self.scope['query_string'].decode()
@@ -85,18 +105,26 @@ class SessionConsumer(AsyncWebsocketConsumer):
         self.site_id = query_params.get('siteId', [None])[0]
         self.session_id = query_params.get('sessionId', [None])[0]
         self.site_url = query_params.get('siteUrl', [None])[0]
+        self.user_id = query_params.get('userId', [None])[0]
+
+        logger.debug(
+            f"SessionConsumer: Received query params - siteKey: {self.site_key}, siteId: {self.site_id}, sessionId: {self.session_id}, siteUrl: {self.site_url}")
 
         # **Site Key Validation**
-        site = await sync_to_async(validate_site_key)(self.site_id, self.site_key)
+        site = await validate_site_key(self.site_id, self.site_key)
         if not site:
             logger.error(f"SessionConsumer: Invalid site key {self.site_key}. Disconnecting.")
             await self.close(code=4004)
             return
 
+        if not self.user_id:
+            logger.error(f"SessionConsumer: User ID is required. Disconnecting.")
+            await self.close(code=4004)
+            return
+
         # Validate URL exclusion rules
-        user = await sync_to_async(User.objects.get)(id=site.user_id)
-        user_id: str = user.id
-        exclusion_rules = await sync_to_async(get_exclusion_rules)(user_id, self.site_id)
+        user = await User.objects.filter(id=self.user_id).afirst()
+        exclusion_rules = await get_exclusion_rules(user.id, self.site_id)
 
         # Check if the current URL should be excluded from recording
         if await is_domain_or_subdomain_excluded(self.site_url, exclusion_rules):
@@ -105,25 +133,17 @@ class SessionConsumer(AsyncWebsocketConsumer):
             return
 
         # Validate session ID
-        if not await sync_to_async(self.is_session_id_valid)(self.session_id):
+        if not await is_session_id_valid(self.session_id, self.site_id):
             self.session_id = f"session_{secrets.token_urlsafe(16)}"
 
-        # Ensure session_id is correctly fetched
         self.group_name = f"session_{self.session_id}"
 
-        # Logging connection attempt
         logger.info(f"SessionConsumer: Connecting to session {self.session_id}")
 
         # Join the session group
-        await self.channel_layer.group_add(
-            self.group_name,
-            self.channel_name
-        )
+        await self.channel_layer.group_add(self.group_name, self.channel_name)
 
-        # Notify live status change if applicable
         await self.notify_live_status(True)
-
-        # Notify the frontend about the new session creation
         await self.notify_session_creation()
 
         await self.accept()
@@ -133,43 +153,13 @@ class SessionConsumer(AsyncWebsocketConsumer):
             'message': self.session_id
         }))
 
-    def is_session_id_valid(self, session_id):
-        """Check if the session ID is valid."""
-
-        # Check if the session ID is not None
-        if not session_id:
-            return False
-
-        # Check if the session ID is not empty
-        if not session_id.strip():
-            return False
-
-        # Check if the session ID is not too long
-        if len(session_id) > 255:
-            return False
-
-        # Check if session id does not belong to the current site
-        if not UserSession.objects.filter(session_id=session_id, site_id=self.site_id).exists():
-            return False
-
-        return True
-
     async def disconnect(self, close_code):
-        print("Disconnect method called")  # Temporary print statement for debugging
-
-        # Logging disconnection
         logger.info(f"SessionConsumer: Disconnecting from session {self.session_id} with close code {close_code}")
 
         # Leave the session group
-        await self.channel_layer.group_discard(
-            self.group_name,
-            self.channel_name
-        )
+        await self.channel_layer.group_discard(self.group_name, self.channel_name)
 
-        # Mark the session as not live
         await self.set_session_live_status(False)
-
-        # Notify live status change if applicable
         await self.notify_live_status(False)
 
         self.connection_closed = True  # Set the flag to True
@@ -230,7 +220,8 @@ class SessionConsumer(AsyncWebsocketConsumer):
 
         # Send the event to all live session viewers
         await self.channel_layer.group_send(
-            f"{self.group_name}_{self.live_session_group_postfix}",
+            # f"{self.group_name}_{self.live_session_group_postfix}",
+            f"{self.group_name}",
             {
                 "type": "live_session_event",
                 "text": json.dumps(events[-1])  # Send the last event

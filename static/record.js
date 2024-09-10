@@ -85,9 +85,9 @@
     function setupWebSocketConnection(userId, siteId, siteKey, sessionId) {
         let params = undefined;
         if (sessionId) {
-            params = `?siteId=${siteId}&siteKey=${siteKey}&sessionId=${sessionId}`;
+            params = `?userId=${userId}&siteId=${siteId}&siteKey=${siteKey}&sessionId=${sessionId}`;
         } else {
-            params = `?siteId=${siteId}&siteKey=${siteKey}`;
+            params = `?userId=${userId}&siteId=${siteId}&siteKey=${siteKey}`;
         }
 
         const siteUrl = window.location.href;
