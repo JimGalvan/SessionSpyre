@@ -1,10 +1,9 @@
-import fnmatch
 import json
 import logging
+import re
 import secrets
 from datetime import datetime, timedelta
-from urllib.parse import parse_qs
-from urllib.parse import urlparse
+from urllib.parse import parse_qs, urlparse
 
 import pytz
 from asgiref.sync import sync_to_async
@@ -25,35 +24,62 @@ async def get_exclusion_rules(user_id, site_id):
     """Fetch exclusion rules for the given user and site asynchronously."""
     exclusion_rules_dtos = []
     async for rule in URLExclusionRule.objects.filter(user_id=user_id, site_id=site_id).all():
-        print(rule)
+        if rule.exclusion_type == 'url_pattern':
+            exclusion_rules_dtos.append(
+                URLExclusionRuleDto(url_pattern=rule.url_pattern, exclusion_type=rule.exclusion_type))
         exclusion_rules_dtos.append(URLExclusionRuleDto(rule.domain, rule.exclusion_type))
     return exclusion_rules_dtos
 
 
-def normalize_domain(domain):
+def normalize_domain(domain: str) -> tuple[str, int]:
+    # Ensure the domain has a scheme
     if not domain.startswith(('http://', 'https://')):
         domain = 'http://' + domain
     parsed_domain = urlparse(domain)
     return parsed_domain.hostname, parsed_domain.port
 
 
-async def is_domain_or_subdomain_excluded(site_url, exclusion_rules):
+async def is_domain_or_subdomain_excluded(site_url: str, exclusion_rules: list) -> bool:
     parsed_url = urlparse(site_url)
     site_hostname = parsed_url.hostname
 
+    if not site_hostname:
+        return False
+
     for rule in exclusion_rules:
-        rule_domain_hostname, _ = normalize_domain(rule.domain)
-        if rule.exclusion_type == 'domain' and fnmatch.fnmatch(site_hostname, rule_domain_hostname):
+        rule_domain_hostname = None
+        if rule.exclusion_type in ['domain', 'subdomain']:
+            rule_domain_hostname, _ = normalize_domain(rule.domain)
+
+        # Check if it's an exact domain match
+        if rule.exclusion_type == 'domain' and re.fullmatch(re.escape(rule_domain_hostname), site_hostname):
             return True
-        elif rule.exclusion_type == 'subdomain' and fnmatch.fnmatch(site_hostname, rule_domain_hostname):
-            return True
+
+        # Check if it's a subdomain match (e.g., sub.example.com should match *.example.com)
+        elif rule.exclusion_type == 'subdomain':
+            # Prepare regex for subdomain matching: match subdomains like *.example.com
+            subdomain_pattern = r'\.?' + re.escape(rule_domain_hostname) + r'$'
+            if re.search(subdomain_pattern, site_hostname):
+                return True
     return False
 
 
-async def is_url_pattern_excluded(path, exclusion_rules):
+async def is_url_pattern_excluded(url: str, exclusion_rules: list) -> bool:
+    # Extract path from the full URL, in case a full URL is passed
+    parsed_url = urlparse(url)
+    url = parsed_url.path
+
     for rule in exclusion_rules:
-        if rule.exclusion_type == 'url_pattern' and fnmatch.fnmatch(path, rule.url_pattern):
-            return True
+        if rule.exclusion_type == 'url_pattern' and rule.url_pattern:
+            # Convert wildcard pattern to regular expression
+            # Replace '*' with '.*' for wildcard support and escape the rest
+            pattern = re.escape(rule.url_pattern).replace(r'\*', '.*')
+            # Ensure full match by anchoring the pattern at start and end
+            pattern = f"^{pattern}$"
+
+            # Perform regex match
+            if re.match(pattern, url):
+                return True
     return False
 
 
@@ -80,9 +106,10 @@ async def is_session_id_valid(session_id, site_id):
 
 
 class URLExclusionRuleDto:
-    def __init__(self, domain, exclusion_type):
+    def __init__(self, domain=None, exclusion_type=None, url_pattern=None):
         self.domain = domain
         self.exclusion_type = exclusion_type
+        self.url_pattern = url_pattern
 
 
 class SessionConsumer(AsyncWebsocketConsumer):
@@ -90,6 +117,7 @@ class SessionConsumer(AsyncWebsocketConsumer):
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
+        self.exclusion_rules = None
         self.user_id = None
         self.site_url = None
         self.site_id = None
@@ -124,10 +152,10 @@ class SessionConsumer(AsyncWebsocketConsumer):
 
         # Validate URL exclusion rules
         user = await User.objects.filter(id=self.user_id).afirst()
-        exclusion_rules = await get_exclusion_rules(user.id, self.site_id)
+        self.exclusion_rules = await get_exclusion_rules(user.id, self.site_id)
 
         # Check if the current URL should be excluded from recording
-        if await is_domain_or_subdomain_excluded(self.site_url, exclusion_rules):
+        if await is_domain_or_subdomain_excluded(self.site_url, self.exclusion_rules):
             logger.info(f"SessionConsumer: URL {self.scope['path']} is excluded from tracking.")
             await self.close(code=4004)
             return
@@ -171,6 +199,13 @@ class SessionConsumer(AsyncWebsocketConsumer):
         events = text_data_json.get('events')
         user_id = text_data_json.get('user_id')
         site_id = text_data_json.get('site_id')
+
+        if self.exclusion_rules:
+            # Check if the current URL should be excluded from recording
+            if await is_url_pattern_excluded(self.site_url, self.exclusion_rules):
+                logger.info(f"SessionConsumer: URL {self.scope['path']} is excluded from tracking.")
+                await self.send(text_data=json.dumps({'status': 'error', 'message': 'URL is excluded from tracking'}))
+                return
 
         try:
             site = await sync_to_async(Site.objects.get)(id=site_id)
@@ -229,6 +264,13 @@ class SessionConsumer(AsyncWebsocketConsumer):
         )
 
         await self.send(text_data=json.dumps({'status': 'success'}))
+
+    async def live_session_event(self, event):
+        """Handle the live session event."""
+        logger.info(f"LiveSessionConsumer: Received live session event for session {self.session_id}")
+        logger.debug(f"Event data: {event}")
+
+        await self.send(text_data=event['text'])
 
     async def create_new_session(self, events, site, user_id, session_id=None):
         session = await sync_to_async(UserSession.objects.create)(
@@ -355,9 +397,4 @@ class LiveSessionConsumer(AsyncWebsocketConsumer):
             self.channel_name
         )
 
-    async def live_session_event(self, event):
-        """Handle the live session event."""
-        logger.info(f"LiveSessionConsumer: Received live session event for session {self.session_id}")
-        logger.debug(f"Event data: {event}")
 
-        await self.send(text_data=event['text'])
