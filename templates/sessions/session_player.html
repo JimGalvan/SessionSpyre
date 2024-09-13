@@ -67,6 +67,16 @@
             <div class="text-xl">Session:</div>
             <div class="text-xl font-bold ml-2">{{ session.session_id }}</div>
         </div>
+        <button id="refresh-button"
+                class="ml-4 px-4 py-2 bg-gray-800 hover:bg-gray-700 text-white rounded inline-flex items-center">
+            <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none"
+                 stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"
+                 class="lucide lucide-rotate-cw">
+                <path d="M21 12a9 9 0 1 1-9-9c2.52 0 4.93 1 6.74 2.74L21 8"/>
+                <path d="M21 3v5h-5"/>
+            </svg>
+        </button>
+
         {% if session.live %}
             <div id="live-session-indicator" class="flex items-center space-x-2 ml-auto">
                 <div class="animate-ping h-3 w-3 bg-green-500 rounded-full"></div>
@@ -137,6 +147,13 @@
                 // Remove this event listener to prevent multiple initializations
                 document.body.removeEventListener('htmx:afterSwap', handleAfterSwap);
             }
+        });
+
+        // Add a click event listener to the refresh button
+        document.getElementById('refresh-button').addEventListener('click', function () {
+            htmx.ajax('GET', `{% url 'replay_session' session.session_id %}`, {
+                target: '#viewer-container'
+            });
         });
     </script>
 </div>
