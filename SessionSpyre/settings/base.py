@@ -52,6 +52,7 @@ TEMPLATES = [
                 'django.template.context_processors.request',
                 'django.contrib.auth.context_processors.auth',
                 'django.contrib.messages.context_processors.messages',
+                'session_tracker.context_processors.settings_context_processor',
             ],
         },
     },
@@ -151,3 +152,5 @@ LOGGING = {
 }
 
 AUTH_USER_MODEL = 'session_tracker.UserAccount'
+
+SCRIPT_URL = ''

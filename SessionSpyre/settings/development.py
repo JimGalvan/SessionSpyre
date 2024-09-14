@@ -28,3 +28,5 @@ DATABASES = {
         'PORT': env('DB_PORT', default='5432'),
     }
 }
+
+SCRIPT_URL = 'http://localhost:8000/static/record.js'

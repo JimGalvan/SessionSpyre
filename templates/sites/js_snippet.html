@@ -30,7 +30,7 @@
     &nbsp;&nbsp;<span class="function">(async function ()</span> {<br>
     &nbsp;&nbsp;&nbsp;&nbsp;<span class="keyword">const</span> script = <span class="keyword">document</span>.<span
         class="function">createElement</span>(<span class="string">'script'</span>);<br>
-    &nbsp;&nbsp;&nbsp;&nbsp;script.<span class="keyword">src</span> = <span class="string">'http://localhost:8000/static/record.js'</span>;<br>
+    &nbsp;&nbsp;&nbsp;&nbsp;script.<span class="keyword">src</span> = <span class="string">'{{ SCRIPT_URL }}'</span>;<br>
     &nbsp;&nbsp;&nbsp;&nbsp;script.<span class="keyword">async</span> = <span class="keyword">true</span>;<br>
     &nbsp;&nbsp;&nbsp;&nbsp;<span class="keyword">document</span>.<span class="keyword">head</span>.<span
         class="function">appendChild</span>(script);<br>
