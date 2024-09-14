@@ -53,7 +53,7 @@ class Site(models.Model):
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
     user = models.ForeignKey(UserAccount, on_delete=models.CASCADE, related_name='sites')
     name = models.CharField(max_length=255)
-    domain = models.CharField(max_length=255, unique=True, blank=True, null=True)
+    domain = models.CharField(max_length=255, blank=True, null=True)
     key = models.CharField(max_length=64, unique=True, blank=True, null=True)
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)

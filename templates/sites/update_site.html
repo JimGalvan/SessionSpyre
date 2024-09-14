@@ -1,6 +1,6 @@
 {% include 'layout/messages.html' %}
 <div class="w-full max-w-md mx-auto bg-gray-900 text-white shadow-lg rounded-lg p-8 mt-4">
-    <h1 class="text-2xl font-semibold text-center mb-6">Options Site</h1>
+    <h1 class="text-2xl font-semibold text-center mb-6">Settings</h1>
 
     <!-- Update Site Form -->
     <form method="post" hx-post="{% url 'update_site' site.id %}" hx-target="#list-sites-container" hx-swap="innerHTML">
@@ -20,6 +20,9 @@
             </button>
         </div>
     </form>
+
+    <!-- Separator -->
+    <hr class="my-8 border-gray-700">
 
     <!-- URL Exclusion Rules Section -->
     <div class="mt-8">

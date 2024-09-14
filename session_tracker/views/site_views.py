@@ -53,11 +53,6 @@ def create_site(request):
             messages.error(request, "You have reached the limit of 3 sites.")
             return redirect(reverse('list_sites'))
 
-        # Check for domain uniqueness
-        if Site.objects.filter(domain=domain).exists():
-            messages.error(request, "A site with this domain already exists.")
-            return redirect(reverse('create_site'))
-
         Site.objects.create(user=request.user, name=name, domain=domain)
         messages.success(request, "Site created successfully!")
         return redirect(reverse('list_sites'))
