@@ -1,0 +1,26 @@
+/* Custom Scrollbar Styling */
+
+/* Apply to the whole document for Firefox */
+html {
+    scrollbar-width: thin; /* Makes scrollbar thinner */
+    scrollbar-color: #888 #333; /* Sets thumb and track colors */
+}
+
+/* For Webkit-based browsers (Chrome, Safari, Edge) */
+::-webkit-scrollbar {
+    width: 12px; /* Width of the scrollbar */
+}
+
+::-webkit-scrollbar-track {
+    background: #333; /* Dark gray background for the track */
+}
+
+::-webkit-scrollbar-thumb {
+    background-color: #888; /* Gray color for the thumb */
+    border-radius: 6px; /* Rounded corners */
+    border: 3px solid #333; /* Padding around thumb */
+}
+
+::-webkit-scrollbar-thumb:hover {
+    background-color: #555; /* Darker gray when hovered */
+}

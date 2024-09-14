@@ -16,12 +16,12 @@ def sessions_view(request, site_id):
 
 
 def replay_session(request, session_id):
-    session: UserSession = UserSession.objects.get(session_id=session_id)
+    session: UserSession = UserSession.objects.get(id=session_id)
     return render(request, 'sessions/session_player.html', {'session': session})
 
 
 def delete_session(request, session_id):
-    session: UserSession = UserSession.objects.get(session_id=session_id)
+    session: UserSession = UserSession.objects.get(id=session_id)
     session.delete()
     user_id: str = request.user.id
     sessions: list = UserSession.objects.filter(user_id=user_id)
