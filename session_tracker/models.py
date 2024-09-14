@@ -2,31 +2,56 @@ import hashlib
 import json
 import uuid
 
-from django.contrib.auth.models import User
+from django.contrib.auth.models import AbstractUser, Group, Permission
 from django.db import models
 from django.db.models.signals import post_save
 from django.dispatch import receiver
 
 
+class UserAccount(AbstractUser):
+    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+
+    # Adding related_name to avoid clashes
+    groups = models.ManyToManyField(
+        Group,
+        related_name="useraccount_set",  # Custom related name for groups
+        blank=True,
+        help_text="The groups this user belongs to.",
+        verbose_name="groups",
+    )
+    user_permissions = models.ManyToManyField(
+        Permission,
+        related_name="useraccount_permissions",  # Custom related name for permissions
+        blank=True,
+        help_text="Specific permissions for this user.",
+        verbose_name="user permissions",
+    )
+
+    def __str__(self):
+        return self.username
+
+
 class UserProfile(models.Model):
-    user = models.OneToOneField(User, on_delete=models.CASCADE)
+    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+    user = models.OneToOneField(UserAccount, on_delete=models.CASCADE)
     timezone = models.CharField(max_length=50, default='UTC')
 
 
-@receiver(post_save, sender=User)
+@receiver(post_save, sender=UserAccount)
 def create_or_update_user_profile(sender, instance, created, **kwargs):
     if created:
         UserProfile.objects.create(user=instance)
     instance.userprofile.save()
 
 
-def generate_site_key(user_id: int) -> str:
+def generate_site_key(user_id: uuid.UUID) -> str:
     unique_string = f"{user_id}-{uuid.uuid4()}"
     return hashlib.sha256(unique_string.encode()).hexdigest()
 
 
 class Site(models.Model):
-    user = models.ForeignKey(User, on_delete=models.CASCADE, related_name='sites')
+    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+    user = models.ForeignKey(UserAccount, on_delete=models.CASCADE, related_name='sites')
     name = models.CharField(max_length=255)
     domain = models.CharField(max_length=255, unique=True, blank=True, null=True)
     key = models.CharField(max_length=64, unique=True, blank=True, null=True)
@@ -46,6 +71,7 @@ class Site(models.Model):
 
 
 class UserSession(models.Model):
+    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
     site = models.ForeignKey(Site, on_delete=models.CASCADE, related_name='sessions')
     session_id = models.CharField(max_length=255, unique=True)
     user_id = models.CharField(max_length=255)
@@ -60,11 +86,6 @@ class UserSession(models.Model):
             models.Index(fields=['user_id']),
             models.Index(fields=['created_at']),
         ]
-        # Optional: If you frequently query a combination of fields, you can create a composite index.
-        # models.Index(fields=['user_id', 'created_at']),
-        # You can also add db_index=True on individual fields for performance optimization.
-        # models.CharField(max_length=255, db_index=True)
-
         ordering = ['-live', '-created_at']
 
     def __str__(self):
@@ -76,6 +97,7 @@ class UserSession(models.Model):
 
 
 class URLExclusionRule(models.Model):
+    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
     DOMAIN = 'domain'
     SUBDOMAIN = 'subdomain'
     URL_PATTERN = 'url_pattern'
@@ -86,7 +108,7 @@ class URLExclusionRule(models.Model):
         (URL_PATTERN, 'URL Pattern'),
     ]
 
-    user = models.ForeignKey(User, on_delete=models.CASCADE)
+    user = models.ForeignKey(UserAccount, on_delete=models.CASCADE)
     site = models.ForeignKey(Site, on_delete=models.CASCADE)
     exclusion_type = models.CharField(max_length=20, choices=EXCLUSION_TYPES, default=URL_PATTERN)
     domain = models.CharField(max_length=255, help_text="Enter the domain or subdomain", blank=True, null=True)

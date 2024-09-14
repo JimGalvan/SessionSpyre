@@ -23,7 +23,12 @@
 
         const {userId, siteId, siteKey, enableFallback = true} = config;
 
-        const sessionId = getCookie('recording_session_id');
+        let sessionId = getCookie('recording_session_id');
+        if (sessionId && !isValidGUID(sessionId)) {
+            console.warn('Invalid session ID in cookie:', sessionId);
+            sessionId = null;
+        }
+
         const sessionIsActive = isSessionActive(config.checkSession);
 
         if (sessionId) {
@@ -51,7 +56,7 @@
             switch (key) {
                 case 'userId':
                 case 'siteId':
-                    return typeof value === 'number' && /^\d+$/.test(value.toString());
+                    return typeof value === 'string' && isValidGUID(value);
                 case 'siteKey':
                     return typeof value === 'string' && value.length === 64 && /^[a-f0-9]+$/.test(value);
                 default:
@@ -60,10 +65,18 @@
         });
     }
 
+    function isValidGUID(str) {
+        const guidRegex = /^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$/;
+        return guidRegex.test(str);
+    }
+
     function getCookie(name) {
         const value = `; ${document.cookie}`;
         const parts = value.split(`; ${name}=`);
-        if (parts.length === 2) return parts.pop().split(';').shift();
+        if (parts.length === 2) {
+            const cookieValue = parts.pop().split(';').shift();
+            return decodeURIComponent(cookieValue);
+        }
     }
 
     function setCookie(name, value, hours) {
@@ -83,11 +96,9 @@
     }
 
     function setupWebSocketConnection(userId, siteId, siteKey, sessionId) {
-        let params = undefined;
+        let params = `?userId=${encodeURIComponent(userId)}&siteId=${encodeURIComponent(siteId)}&siteKey=${encodeURIComponent(siteKey)}`;
         if (sessionId) {
-            params = `?userId=${userId}&siteId=${siteId}&siteKey=${siteKey}&sessionId=${sessionId}`;
-        } else {
-            params = `?userId=${userId}&siteId=${siteId}&siteKey=${siteKey}`;
+            params += `&sessionId=${encodeURIComponent(sessionId)}`;
         }
 
         const siteUrl = window.location.href;
@@ -102,10 +113,12 @@
             console.log("Message from server:", event.data);
             const data = JSON.parse(event.data);
             console.log("Message: ", data.message);
-            if (data.message) {
+            if (data.message && isValidGUID(data.message)) {
                 sessionId = data.message;
                 setCookie('recording_session_id', sessionId, 8);
                 console.log('Session ID received and stored:', sessionId);
+            } else {
+                console.error('Invalid session ID received:', data.message);
             }
         };
         socket.onclose = () => console.log("WebSocket connection closed");

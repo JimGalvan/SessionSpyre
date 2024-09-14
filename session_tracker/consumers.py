@@ -1,16 +1,15 @@
 import json
 import logging
 import re
-import secrets
+import uuid
 from datetime import datetime, timedelta
 from urllib.parse import parse_qs, urlparse
 
 import pytz
 from asgiref.sync import sync_to_async
 from channels.generic.websocket import AsyncWebsocketConsumer
-from django.contrib.auth.models import User
 
-from .models import UserSession, Site, URLExclusionRule
+from .models import UserSession, Site, URLExclusionRule, UserAccount
 
 logger = logging.getLogger(__name__)
 
@@ -99,7 +98,7 @@ async def is_session_id_valid(session_id, site_id):
         return False
 
     # Check if session id does not belong to the current site
-    if not await UserSession.objects.filter(session_id=session_id, site_id=site_id).aexists():
+    if not await UserSession.objects.filter(id=session_id, site_id=site_id).aexists():
         return False
 
     return True
@@ -151,7 +150,7 @@ class SessionConsumer(AsyncWebsocketConsumer):
             return
 
         # Validate URL exclusion rules
-        user = await User.objects.filter(id=self.user_id).afirst()
+        user = await UserAccount.objects.filter(id=self.user_id).afirst()
         self.exclusion_rules = await get_exclusion_rules(user.id, self.site_id)
 
         # Check if the current URL should be excluded from recording
@@ -162,7 +161,7 @@ class SessionConsumer(AsyncWebsocketConsumer):
 
         # Validate session ID
         if not await is_session_id_valid(self.session_id, self.site_id):
-            self.session_id = f"session_{secrets.token_urlsafe(16)}"
+            self.session_id = str(uuid.uuid4())
 
         self.group_name = f"session_{self.session_id}"
 
@@ -216,7 +215,7 @@ class SessionConsumer(AsyncWebsocketConsumer):
 
         # Check if the session already exists
         try:
-            session = await sync_to_async(UserSession.objects.get)(session_id=self.session_id, site=site)
+            session = await sync_to_async(UserSession.objects.get)(id=self.session_id, site=site)
             session.live = True
             await sync_to_async(session.save)()
             create_session = False
@@ -274,6 +273,7 @@ class SessionConsumer(AsyncWebsocketConsumer):
 
     async def create_new_session(self, events, site, user_id, session_id=None):
         session = await sync_to_async(UserSession.objects.create)(
+            id=self.session_id,
             session_id=self.session_id,
             site=site,
             user_id=user_id,
@@ -285,7 +285,7 @@ class SessionConsumer(AsyncWebsocketConsumer):
 
     async def set_session_live_status(self, is_live):
         logger.info(f"SessionConsumer: Setting live status to {is_live} for session {self.session_id}")
-        await sync_to_async(UserSession.objects.filter(session_id=self.session_id).update)(live=is_live)
+        await sync_to_async(UserSession.objects.filter(id=self.session_id).update)(live=is_live)
 
     async def notify_live_status(self, is_live):
         logger.info(f"SessionConsumer: Notifying live status change to {is_live} for session {self.session_id}")

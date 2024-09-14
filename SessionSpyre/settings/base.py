@@ -149,3 +149,5 @@ LOGGING = {
         },
     },
 }
+
+AUTH_USER_MODEL = 'session_tracker.UserAccount'
