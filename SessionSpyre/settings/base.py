@@ -152,3 +152,5 @@ LOGGING = {
 AUTH_USER_MODEL = 'session_tracker.UserAccount'
 
 SCRIPT_URL = ''
+
+DEBUG = True
