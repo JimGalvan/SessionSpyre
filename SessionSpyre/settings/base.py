@@ -22,7 +22,6 @@ INSTALLED_APPS = [
     'django.contrib.staticfiles',
     'widget_tweaks',
     'session_tracker',
-    'corsheaders',
 ]
 
 MIDDLEWARE = [
@@ -33,7 +32,6 @@ MIDDLEWARE = [
     'django.contrib.auth.middleware.AuthenticationMiddleware',
     'django.contrib.messages.middleware.MessageMiddleware',
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
-    'corsheaders.middleware.CorsMiddleware',
     'session_tracker.middleware.TimezoneMiddleware',
     'django.middleware.csrf.CsrfViewMiddleware',
 ]
