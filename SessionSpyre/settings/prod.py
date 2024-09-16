@@ -38,3 +38,5 @@ DATABASES = {
 CSRF_TRUSTED_ORIGINS = [
     'https://sessionspyre-production.up.railway.app'
 ]
+
+SCRIPT_URL = 'https://a3d3b857.sessionspyre-clientjs.pages.dev/record.js'
