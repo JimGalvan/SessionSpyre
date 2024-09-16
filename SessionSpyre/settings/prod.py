@@ -8,6 +8,8 @@ env = environ.Env(
     DEBUG=(bool, False)
 )
 
+DEBUG = True
+
 # Reading .env file
 environ.Env.read_env(os.path.join(BASE_DIR, '.env'))
 
