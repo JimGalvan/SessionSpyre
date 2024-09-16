@@ -28,3 +28,7 @@ DATABASES = {
         'PORT': env('DB_PORT', default='5432'),
     }
 }
+
+CSRF_TRUSTED_ORIGINS = [
+    'https://sessionspyre-production.up.railway.app'
+]
