@@ -31,8 +31,9 @@
         document.addEventListener('DOMContentLoaded', function () {
             console.log("Document loaded");
             let host = window.location.host;
-            const liveStatusSocket = new WebSocket(`ws://${host}/ws/live-status/`);
-            const sessionUpdatesSocket = new WebSocket(`ws://${host}/ws/session-updates/`);
+            const wsProtocol = window.location.protocol === 'https:' ? 'wss://' : 'ws://';
+            const liveStatusSocket = new WebSocket(`${wsProtocol}${host}/ws/live-status/`);
+            const sessionUpdatesSocket = new WebSocket(`${wsProtocol}${host}/ws/session-updates/`);
 
             const updateLiveStatus = function (liveStatusSocket) {
                 // Handle live status updates

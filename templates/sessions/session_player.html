@@ -115,7 +115,8 @@
             // If the session is live, open a WebSocket to receive real-time updates
             {% if session.live %}
                 let host = window.location.host;
-                const socket = new WebSocket(`ws://${host}/ws/live-session/{{ session.session_id }}/`);
+                const wsProtocol = window.location.protocol === 'https:' ? 'wss://' : 'ws://';
+                const socket = new WebSocket(`${wsProtocol}${host}/ws/live-session/{{ session.session_id }}/`);
                 console.log('Opening WebSocket connection to receive live events...');
 
                 socket.onmessage = function (event) {
