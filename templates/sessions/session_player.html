@@ -64,8 +64,8 @@
 <div class="h-full w-full p-4" style="position: relative; z-index: 10;">
     <div class="flex">
         <div class="flex items-center mb-4">
-            <div class="text-xl">Session:</div>
-            <div class="text-xl font-bold ml-2">{{ session.session_id }}</div>
+            <div class="text-xl text-white">Session:</div>
+            <div class="text-xl text-white font-bold ml-2">{{ session.session_id }}</div>
         </div>
         <button id="refresh-button"
                 class="ml-4 px-4 py-2 bg-gray-800 hover:bg-gray-700 text-white rounded inline-flex items-center">
@@ -152,7 +152,8 @@
         // Add a click event listener to the refresh button
         document.getElementById('refresh-button').addEventListener('click', function () {
             htmx.ajax('GET', `{% url 'replay_session' session.session_id %}`, {
-                target: '#viewer-container'
+                target: '#viewer-container',
+                swap: 'innerHTML'
             });
         });
     </script>
