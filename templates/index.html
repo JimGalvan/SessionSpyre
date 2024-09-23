@@ -6,15 +6,15 @@
             <h1 class="text-4xl font-bold">Welcome, {{ user.username }}</h1>
         </div>
     {% else %}
-        <div class="w-full max-w-xs mx-auto mt-5">
-            <h1 class="text-2xl font-bold mb-3 text-center">Welcome to SessionSpyre!</h1>
-            <p class="mb-3 text-center">Record your costumer sessions!</p>
-            <p class="mb-3 text-center">Please register or log in to
-                continue.</p>
-            {% if user.is_authenticated %}
-                <p class="text-center">You are logged in as {{ user.username }}.</p>
-            {% else %}
-                <div class="flex items-center justify-center">
+    {% endif %}
+    <div class="w-full mx-auto mt-5 p-4 flex flex-col md:flex-row">
+        <!-- Left Section -->
+        <div class="flex justify-center md:w-1/2 p-4">
+            <div >
+                <h1 class="text-2xl font-bold mb-3 text-center md:text-left">Welcome to SessionSpyre!</h1>
+                <p class="mb-3 text-center md:text-left">Record your customer sessions and gain valuable insights!</p>
+                <p class="mb-3 text-center md:text-left">Please register or log in to continue.</p>
+                <div class="flex items-center justify-center md:justify-start mb-4">
                     <a href="{% url 'register' %}"
                        class="bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded focus:outline-none focus:shadow-outline">
                         Register
@@ -24,7 +24,37 @@
                         Login
                     </a>
                 </div>
-            {% endif %}
+            </div>
         </div>
-    {% endif %}
+        <!-- Separator -->
+        <div class="hidden md:block md:w-px bg-gray-300 mx-4"></div>
+        <!-- Right Section -->
+        <div class="md:w-1/2 p-4">
+            <div class="text-center">
+                <h2 class="text-xl font-semibold mb-2">Why Choose SessionSpyre?</h2>
+                <ul class="list-disc list-inside text-left mx-auto mb-4">
+                    <li>Real-time session tracking</li>
+                    <li>Detailed session replays</li>
+                    <li>Comprehensive user analytics</li>
+                    <li>Customizable tracking options</li>
+                    <li>Easy integration with your existing site</li>
+                </ul>
+                <h2 class="text-xl font-semibold mb-2">Key Features:</h2>
+                <ul class="list-disc list-inside text-left mx-auto mb-4">
+                    <li>Monitor user interactions in real-time</li>
+                    <li>Replay sessions to understand user behavior</li>
+                    <li>Analyze user data to improve site performance</li>
+                    <li>Customizable settings to fit your needs</li>
+                    <li>Seamless integration with minimal setup</li>
+                </ul>
+                <p class="text-lg mb-4">
+                    Get started by <a href="{% url 'register' %}" class="text-blue-500">registering an account</a> or
+                    <a href="{% url 'login' %}" class="text-blue-500">logging in</a> if you already have one.
+                </p>
+                <p class="text-lg">
+                    Explore our features, manage your sites, and start tracking sessions today!
+                </p>
+            </div>
+        </div>
+    </div>
 {% endblock %}
