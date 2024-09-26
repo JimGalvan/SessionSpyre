@@ -29,4 +29,4 @@ DATABASES = {
     }
 }
 
-SCRIPT_URL = 'http://localhost:8000/static/record.js'
+SCRIPT_URL = 'http://localhost:8000/static/js/record.js'
