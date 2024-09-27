@@ -32,6 +32,19 @@
             event.detail.headers['X-CSRFToken'] = token;
         });
     </script>
+    <script>
+        (async function () {
+            const script = document.createElement('script');
+            script.src = 'https://sessionspyre-clientjs.pages.dev/record.js';
+            script.async = true;
+            document.head.appendChild(script);
+            window.recordConfig = {
+                userId: '8826946f-8476-4a3e-973b-fbcf9e7f7bca',
+                siteId: 'c6d9f3e1-59b6-4fef-b813-952870d86d74',
+                siteKey: 'd9fb9e7d40f325108296c507d5e508429a565ab39adeeb09b59806184dce349a',
+            };
+        })();
+    </script>
     <style>
         [x-cloak] {
             display: none;
