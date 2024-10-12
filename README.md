@@ -21,7 +21,7 @@ SessionSpyre is a comprehensive web application designed to track and replay use
 
 ### Project Structure
 
-- `session_tracker/static/js/record.js`: Handles the recording of user sessions and WebSocket connections.
+- [SessionSpyre Client JS](https://github.com/JimGalvan/SessionSpyre-ClientJS): Handles the recording of user sessions and WebSocket connections.
 - `SessionSpyre/urls.py`: Defines the URL routing for the Django application.
 - `templates/base.html`: Base HTML template for the application, including CSS and JavaScript imports.
 
