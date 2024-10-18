@@ -20,13 +20,16 @@ async def validate_site_key(site_id, site_key):
 
 
 async def get_exclusion_rules(user_id, site_id):
-    """Fetch exclusion rules for the given user and site asynchronously."""
     exclusion_rules_dtos = []
     async for rule in URLExclusionRule.objects.filter(user_id=user_id, site_id=site_id).all():
-        if rule.exclusion_type == 'url_pattern':
-            exclusion_rules_dtos.append(
-                URLExclusionRuleDto(url_pattern=rule.url_pattern, exclusion_type=rule.exclusion_type))
-        exclusion_rules_dtos.append(URLExclusionRuleDto(rule.domain, rule.exclusion_type))
+        exclusion_rules_dtos.append(
+            URLExclusionRuleDto(
+                domain=rule.domain,
+                exclusion_type=rule.exclusion_type,
+                url_pattern=rule.url_pattern,
+                ip_address=rule.ip_address
+            )
+        )
     return exclusion_rules_dtos
 
 
@@ -104,11 +107,19 @@ async def is_session_id_valid(session_id, site_id):
     return True
 
 
+async def is_ip_excluded(ip_address, exclusion_rules):
+    for rule in exclusion_rules:
+        if rule.exclusion_type == 'ip_address' and rule.ip_address == ip_address:
+            return True
+    return False
+
+
 class URLExclusionRuleDto:
-    def __init__(self, domain=None, exclusion_type=None, url_pattern=None):
+    def __init__(self, domain=None, exclusion_type=None, url_pattern=None, ip_address=None):
         self.domain = domain
         self.exclusion_type = exclusion_type
         self.url_pattern = url_pattern
+        self.ip_address = ip_address
 
 
 class SessionConsumer(AsyncWebsocketConsumer):
@@ -116,6 +127,7 @@ class SessionConsumer(AsyncWebsocketConsumer):
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
+        self.ip_address = None
         self.exclusion_rules = None
         self.user_id = None
         self.site_url = None
@@ -133,6 +145,8 @@ class SessionConsumer(AsyncWebsocketConsumer):
         self.session_id = query_params.get('sessionId', [None])[0]
         self.site_url = query_params.get('siteUrl', [None])[0]
         self.user_id = query_params.get('userId', [None])[0]
+        self.ip_address = self.scope['client'][0]
+
 
         logger.debug(
             f"SessionConsumer: Received query params - siteKey: {self.site_key}, siteId: {self.site_id}, sessionId: {self.session_id}, siteUrl: {self.site_url}")
@@ -152,6 +166,12 @@ class SessionConsumer(AsyncWebsocketConsumer):
         # Validate URL exclusion rules
         user = await UserAccount.objects.filter(id=self.user_id).afirst()
         self.exclusion_rules = await get_exclusion_rules(user.id, self.site_id)
+
+        # Check if the current IP should be excluded from recording
+        if await is_ip_excluded(self.ip_address, self.exclusion_rules):
+            logger.info(f"SessionConsumer: IP {self.ip_address} is excluded from tracking.")
+            await self.close(code=4004)
+            return
 
         # Check if the current URL should be excluded from recording
         if await is_domain_or_subdomain_excluded(self.site_url, self.exclusion_rules):

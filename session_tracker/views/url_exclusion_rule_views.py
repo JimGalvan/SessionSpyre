@@ -52,7 +52,8 @@ def add_url_exclusion(request, site_id):
         site=site,
         exclusion_type=exclusion_type,
         domain=value if exclusion_type in ['domain', 'subdomain'] else None,
-        url_pattern=value if exclusion_type == 'url_pattern' else None
+        url_pattern=value if exclusion_type == 'url_pattern' else None,
+        ip_address=value if exclusion_type == 'ip_address' else None
     )
 
     # Return the updated list of rules as a partial HTML to be swapped in HTMX

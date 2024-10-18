@@ -101,11 +101,13 @@ class URLExclusionRule(models.Model):
     DOMAIN = 'domain'
     SUBDOMAIN = 'subdomain'
     URL_PATTERN = 'url_pattern'
+    IP_ADDRESS = 'ip_address'
 
     EXCLUSION_TYPES = [
         (DOMAIN, 'Domain'),
         (SUBDOMAIN, 'Subdomain'),
         (URL_PATTERN, 'URL Pattern'),
+        (IP_ADDRESS, 'IP Address'),
     ]
 
     user = models.ForeignKey(UserAccount, on_delete=models.CASCADE)
@@ -114,6 +116,7 @@ class URLExclusionRule(models.Model):
     domain = models.CharField(max_length=255, help_text="Enter the domain or subdomain", blank=True, null=True)
     url_pattern = models.CharField(max_length=255, help_text="Enter the URL pattern (e.g., '/admin/*')", blank=True,
                                    null=True)
+    ip_address = models.GenericIPAddressField(help_text="Enter the IP address to exclude", blank=True, null=True)
     created_at = models.DateTimeField(auto_now_add=True)
 
     def __str__(self):
