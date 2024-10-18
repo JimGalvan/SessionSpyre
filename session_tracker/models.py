@@ -6,6 +6,7 @@ from django.contrib.auth.models import AbstractUser, Group, Permission
 from django.db import models
 from django.db.models.signals import post_save
 from django.dispatch import receiver
+from django.utils import timezone
 
 
 class UserAccount(AbstractUser):
@@ -68,6 +69,10 @@ class Site(models.Model):
         if not self.key:
             self.key = generate_site_key(self.user.id)
         super().save(*args, **kwargs)
+
+    def get_today_sessions_count(self):
+        today = timezone.now().date()
+        return self.sessions.filter(created_at__date=today).count()
 
 
 class UserSession(models.Model):

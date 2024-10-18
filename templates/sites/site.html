@@ -29,7 +29,10 @@
                     {% endif %}
                 </p>
                 <p class="text-gray-400">
-                    Sessions: {{ site.sessions_count }}
+                    Sessions Today: {{ site.get_today_sessions_count }}
+                </p>
+                <p class="text-gray-400">
+                    Total Sessions: {{ site.sessions_count }}
                 </p>
             </div>
             <div class="relative">
