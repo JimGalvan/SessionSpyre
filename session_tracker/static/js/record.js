@@ -8,6 +8,27 @@
     const maxDelay = 30000; // 30 seconds
     const maxReconnectAttempts = 10;
 
+    // Define log levels
+    const LOG_LEVELS = {
+        'debug': 1,
+        'info': 2,
+        'warn': 3,
+        'error': 4,
+        'none': 5
+    };
+
+    // Initialize logger with default no-op functions
+    let logger = {
+        debug: () => {
+        },
+        info: () => {
+        },
+        warn: () => {
+        },
+        error: () => {
+        },
+    };
+
     async function loadRrwebScript() {
         return new Promise((resolve, reject) => {
             const script = document.createElement('script');
@@ -22,27 +43,53 @@
         const config = window.recordConfig;
 
         if (!isValidConfig(config)) {
-            console.error("Invalid or missing configuration. Event recording will not start.");
+            logger.error("Invalid or missing configuration. Event recording will not start.");
             return;
         }
 
-        const {userId, siteId, siteKey, enableFallback = true} = config;
+        const {
+            userId,
+            siteId,
+            siteKey,
+            enableFallback = true,
+            log_level = 'none' // Default to 'none' if not specified
+        } = config;
+
+        // Determine current log level
+        const currentLogLevel = LOG_LEVELS[log_level] || LOG_LEVELS['none'];
+
+        // Create logger based on log_level
+        logger = createLogger(currentLogLevel);
+        logger.debug("Configuration loaded:", config);
 
         let sessionId = getCookie('recording_session_id');
         if (sessionId && !isValidGUID(sessionId)) {
-            console.warn('Invalid session ID in cookie:', sessionId);
+            logger.warn('Invalid session ID in cookie:', sessionId);
             sessionId = null;
         }
 
         const sessionIsActive = isSessionActive(config.checkSession);
 
         if (!sessionIsActive && !enableFallback) {
-            console.debug("No active session detected and fallback is disabled. Event recording will not start.");
+            logger.debug("No active session detected and fallback is disabled. Event recording will not start.");
             return;
         }
 
         const socket = await setupWebSocketConnection(userId, siteId, siteKey, sessionId);
         startRecording(socket, userId, siteId, siteKey);
+    }
+
+    function createLogger(level) {
+        return {
+            debug: level <= LOG_LEVELS['debug'] ? console.debug.bind(console) : () => {
+            },
+            info: level <= LOG_LEVELS['info'] ? console.info.bind(console) : () => {
+            },
+            warn: level <= LOG_LEVELS['warn'] ? console.warn.bind(console) : () => {
+            },
+            error: level <= LOG_LEVELS['error'] ? console.error.bind(console) : () => {
+            },
+        };
     }
 
     function isValidConfig(config) {
@@ -100,32 +147,41 @@
             const wsProtocol = window.location.protocol === 'https:' ? 'wss://' : 'ws://';
             let socket = new WebSocket(`${wsProtocol}localhost:8000/ws/record-session/${params}`);
 
-            const sessionData = {
-            };
-
             socket.onopen = () => {
-                console.debug("WebSocket connection opened");
+                logger.debug("WebSocket connection opened");
                 reconnectAttempts = 0; // Reset reconnect attempts on successful connection
                 resolve(socket);
-                socket.send(JSON.stringify(sessionData));
             };
 
             socket.onmessage = event => {
                 const data = JSON.parse(event.data);
+
+                if (data.message === undefined || data.message === null) {
+                    logger.debug("Received empty message from server");
+                    return;
+                }
+
+                if (data.message === 'Unauthorized') {
+                    logger.error("Unauthorized access. Please check your site key and user ID.");
+                    socket.close();
+                    return;
+                }
+
                 if (data.message && isValidGUID(data.message)) {
                     sessionId = data.message;
                     setCookie('recording_session_id', sessionId, 8);
+                    logger.debug('Session ID updated:', sessionId);
                 } else {
-                    console.error('Invalid session ID received:', data.message);
+                    logger.debug("Received unknown message from server:", data.message);
                 }
             };
 
             socket.onclose = (event) => {
-                console.debug(`WebSocket connection closed with code: ${event.code}`);
+                logger.debug(`WebSocket connection closed with code: ${event.code}`);
 
                 // Check for specific error codes where we should not reconnect
                 if (event.code === 4004) {
-                    console.error("WebSocket closed due to invalid authorization. No reconnect will be attempted.");
+                    logger.error("WebSocket closed due to invalid authorization. No reconnect will be attempted.");
                     return; // Stop reconnection attempts for unauthorized or invalid connections
                 }
 
@@ -134,7 +190,7 @@
             };
 
             socket.onerror = () => {
-                console.error("WebSocket error occurred");
+                logger.error("WebSocket error occurred");
                 socket.close(); // Close the connection and attempt reconnect
             };
         });
@@ -144,7 +200,7 @@
         if (reconnectAttempts < maxReconnectAttempts) {
             const delay = Math.min(initialDelay * Math.pow(2, reconnectAttempts), maxDelay);
             reconnectAttempts++;
-            console.log(`Reconnecting in ${delay / 1000} seconds... (Attempt ${reconnectAttempts})`);
+            logger.info(`Reconnecting in ${delay / 1000} seconds... (Attempt ${reconnectAttempts})`);
 
             setTimeout(() => {
                 setupWebSocketConnection(userId, siteId, siteKey, sessionId).then((socket) => {
@@ -152,7 +208,7 @@
                 });
             }, delay);
         } else {
-            console.error("Max reconnect attempts reached. Please check your network connection.");
+            logger.error("Max reconnect attempts reached. Please check your network connection.");
         }
     }
 
@@ -168,6 +224,7 @@
                         current_site_url: window.location.href,
                         events
                     }));
+                    logger.debug("Sent 10 events to the server");
                     events = [];
                 }
             }
@@ -181,9 +238,11 @@
                     current_site_url: window.location.href,
                     events,
                 }));
+                logger.debug("Sent remaining events to the server before unload");
             }
             stopRecording();
             socket.close();
+            logger.debug("Stopped recording and closed WebSocket connection");
         });
     }
 
@@ -198,9 +257,14 @@
     const configCheckInterval = setInterval(checkConfigAndInitialize, 1000);
     const timeoutHandle = setTimeout(() => {
         clearInterval(configCheckInterval);
-        console.error("Configuration object not found within the timeout period. Event recording will not start.");
+        logger.error("Configuration object not found within the timeout period. Event recording will not start.");
     }, 20000);
 
-    await loadRrwebScript();
+    try {
+        await loadRrwebScript();
+        logger.debug("rrweb script loaded successfully");
+    } catch (error) {
+        logger.error("Failed to load rrweb script:", error);
+    }
     checkConfigAndInitialize();
 })();
