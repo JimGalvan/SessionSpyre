@@ -1,6 +1,6 @@
 from django import template
 
-from session_tracker.utils import convert_utc_to_local
+from session_tracker.utils.common_utils import convert_utc_to_local
 
 register = template.Library()
 
