@@ -1,3 +1,4 @@
+{% load utility_tags %}
 <script>
     function removePlayer() {
         const playerContainer = document.getElementById('rrweb-player');
@@ -28,7 +29,7 @@
                 {% include 'elements/confirm_delete_session_modal.html' %}
             </template>
         </div>
-        <p class="text-sm text-gray-300">Date: {{ session.created_at }}</p>
+        <p class="text-sm text-gray-300">Date: {{ session.created_at|convert_utc_to_local }}</p>
         <p class="text-sm">
             {% if session.live %}
                 <span class="live-status bg-green-600 text-white rounded px-1 text-xs">Live</span>

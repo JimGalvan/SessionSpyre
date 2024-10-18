@@ -6,5 +6,5 @@ register = template.Library()
 
 
 @register.filter(name='convert_utc_to_local')
-def convert_utc_to_local_filter(value, local_tz_str):
+def convert_utc_to_local_filter(value, local_tz_str=None):
     return convert_utc_to_local(value, local_tz_str)

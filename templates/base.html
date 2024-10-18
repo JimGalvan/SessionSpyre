@@ -27,6 +27,19 @@
     <!-- CSS Styles -->
     <!-- CSS Styles -->
     <script>
+        document.addEventListener('DOMContentLoaded', function () {
+            const timezone = Intl.DateTimeFormat().resolvedOptions().timeZone;
+            fetch('/set-timezone/', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-CSRFToken': '{{ csrf_token }}'
+                },
+                body: JSON.stringify({timezone: timezone})
+            });
+        });
+    </script>
+    <script>
         document.addEventListener('htmx:configRequest', (event) => {
             const token = document.querySelector('[name=csrfmiddlewaretoken]').value;
             event.detail.headers['X-CSRFToken'] = token;
