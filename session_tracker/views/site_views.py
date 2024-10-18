@@ -49,7 +49,7 @@ def create_site(request):
         domain = request.POST.get('domain')
 
         # Check if the user has reached the site limit
-        if Site.objects.filter(user=request.user).count() >= 3:
+        if Site.objects.filter(user=request.user).count() >= 4:
             messages.error(request, "You have reached the limit of 3 sites.")
             return redirect(reverse('list_sites'))
 
