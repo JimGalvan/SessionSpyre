@@ -23,10 +23,6 @@
     <script>
         log.setLevel('info');
     </script>
-    <!-- JS Scripts -->
-    <!-- JS Scripts -->
-    <!-- CSS Styles -->
-    <!-- CSS Styles -->
     <script>
         document.addEventListener('DOMContentLoaded', function () {
             const timezone = Intl.DateTimeFormat().resolvedOptions().timeZone;
@@ -44,6 +40,88 @@
         document.addEventListener('htmx:configRequest', (event) => {
             const token = document.querySelector('[name=csrfmiddlewaretoken]').value;
             event.detail.headers['X-CSRFToken'] = token;
+        });
+    </script>
+    <style>
+        /* Spinner styles */
+        .spinner {
+            display: inline-block;
+            width: 1em;
+            height: 1em;
+            border: 2px solid transparent;
+            border-top-color: #ffffff; /* Customize spinner color */
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+            margin-left: 0.5em; /* Add spacing between text and spinner */
+        }
+
+        .clicked-element-disabled {
+            opacity: 0.5;
+            pointer-events: none;
+            cursor: not-allowed;
+        }
+
+        @keyframes spin {
+            from {
+                transform: rotate(0deg);
+            }
+            to {
+                transform: rotate(360deg);
+            }
+        }
+    </style>
+    <script>
+        document.addEventListener('DOMContentLoaded', function () {
+            document.body.addEventListener('click', function (e) {
+                const target = e.target.closest('a[type="button"], button');
+                if (target) {
+                    const spinner = document.createElement('span');
+                    spinner.className = 'spinner';
+                    target.appendChild(spinner);
+                    target.classList.add('clicked-element-disabled');
+
+                    const getOrPostHtmxAttribute = target.getAttribute('hx-get') == null && target.getAttribute('hx-post') == null;
+                    const hrefNotFound = target.getAttribute('href') == null || target.getAttribute('href') === '' || target.getAttribute('href') === '#';
+                    const buttonIsNotSubmit = target.getAttribute('type') !== 'submit';
+                    const buttonHasAction = hrefNotFound && buttonIsNotSubmit && getOrPostHtmxAttribute;
+
+                    const form = target.closest('form');
+                    let formIsValid = true;
+                    if (form) {
+                        const invalidElements = form.querySelectorAll(':invalid');
+                        if (invalidElements.length > 0) {
+                            formIsValid = false;
+                        }
+                    }
+
+                    if (buttonHasAction || !formIsValid) {
+                        target.classList.remove('clicked-element-disabled');
+                        target.removeChild(spinner);
+                    }
+                }
+            });
+
+            document.addEventListener('htmx:targetError', function (event) {
+                const target = event.target.closest('a[type="button"], button');
+                if (target) {
+                    const spinner = target.querySelector('.spinner');
+                    if (spinner) {
+                        spinner.remove();
+                    }
+                    target.classList.remove('clicked-element-disabled');
+                }
+            });
+
+            document.addEventListener('htmx:afterRequest', function (event) {
+                const spinner = document.querySelector('.spinner');
+                if (spinner) {
+                    spinner.remove();
+                }
+                const clickedElement = document.querySelector('.clicked-element-disabled');
+                if (clickedElement) {
+                    clickedElement.classList.remove('clicked-element-disabled');
+                }
+            });
         });
     </script>
     <script>
