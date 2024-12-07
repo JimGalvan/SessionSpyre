@@ -59,3 +59,7 @@ SessionSpyre is a comprehensive web application designed to track and replay use
 1. **Access the application**: Open your browser and navigate to `http://127.0.0.1:8000/`.
 2. **Admin Interface**: Access the admin interface at `http://127.0.0.1:8000/admin/` to manage users and session data.
 3. **Session Recording**: Integrate the session recording script into your website to start capturing user sessions.
+
+## License
+
+This project is licensed under the Creative Commons Attribution-NonCommercial 4.0 International Public License.
