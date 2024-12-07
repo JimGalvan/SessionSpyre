@@ -1,7 +1,7 @@
 {% include 'layout/messages.html' %}
 <div class="w-full max-w-md mx-auto bg-gray-900 text-white shadow-lg rounded-lg p-8 mt-4">
     <h1 class="text-2xl font-semibold text-center mb-6">Create New Site</h1>
-    <form method="post" hx-post="{% url 'create_site' %}" hx-target="#list-sites-container" hx-swap="innerHTML">
+    <form method="post" action="{% url 'create_site' %}">
         {% csrf_token %}
         <div>
             <label for="name" class="block text-sm font-medium text-gray-300">Site Name</label>

@@ -9,7 +9,7 @@
     <h1 class="text-2xl font-semibold text-center mb-6">Settings</h1>
 
     <!-- Update Site Form -->
-    <form method="post" hx-post="{% url 'update_site' site.id %}">
+    <form method="post" action="{% url 'update_site' site.id %}">
         {% csrf_token %}
         <div>
             <label for="name" class="block text-sm font-medium text-gray-300">Site Name</label>
