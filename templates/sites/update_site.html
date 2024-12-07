@@ -1,9 +1,15 @@
+{% extends 'base.html' %}
+
+{% block title %}Update Site{% endblock %}
+
+{% block content %}
+
 {% include 'layout/messages.html' %}
 <div class="w-full max-w-md mx-auto bg-gray-900 text-white shadow-lg rounded-lg p-8 mt-4">
     <h1 class="text-2xl font-semibold text-center mb-6">Settings</h1>
 
     <!-- Update Site Form -->
-    <form method="post" hx-post="{% url 'update_site' site.id %}" hx-target="#list-sites-container" hx-swap="innerHTML">
+    <form method="post" hx-post="{% url 'update_site' site.id %}">
         {% csrf_token %}
         <div>
             <label for="name" class="block text-sm font-medium text-gray-300">Site Name</label>
@@ -15,9 +21,10 @@
                     class="py-2 px-4 bg-indigo-600 text-white font-semibold rounded-md hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-indigo-500 shadow-md transition duration-150 ease-in-out">
                 Update Site
             </button>
-            <button type="button" class="px-4 py-2 bg-gray-600 text-white font-semibold rounded hover:bg-gray-700 focus:outline-none focus:ring-2 focus:ring-gray-500" hx-get="{% url 'list_sites' %}" hx-target="#list-sites-container" hx-swap="innerHTML">
+            <a type="button" href="{% url 'sites_view' %}"
+               class="px-4 py-2 bg-gray-600 text-white font-semibold rounded hover:bg-gray-700 focus:outline-none focus:ring-2 focus:ring-gray-500">
                 Cancel
-            </button>
+            </a>
         </div>
     </form>
 
@@ -68,3 +75,5 @@
         </div>
     </div>
 </div>
+
+{% endblock %}

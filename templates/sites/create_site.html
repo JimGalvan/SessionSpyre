@@ -19,11 +19,13 @@
                     class="py-2 px-4 bg-indigo-600 text-white font-semibold rounded-md hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-indigo-500 shadow-md transition duration-150 ease-in-out">
                 Create Site
             </button>
-            <button type="button"
+            <a type="button"
+               href="{% url 'sites_view' %}"
                     class="px-4 py-2 bg-gray-600 text-white font-semibold rounded hover:bg-gray-700 focus:outline-none focus:ring-2 focus:ring-gray-500"
-                    hx-get="{% url 'list_sites' %}" hx-target="#list-sites-container" hx-swap="innerHTML">
+                    {#                    hx-get="{% url 'list_sites' %}" hx-target="#list-sites-container" hx-swap="innerHTML"#}
+            >
                 Cancel
-            </button>
+            </a>
         </div>
     </form>
 </div>

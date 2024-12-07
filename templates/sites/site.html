@@ -43,11 +43,12 @@
                 <div x-show="showOptions" @click.outside="showOptions = false"
                      x-cloak
                      class="absolute right-0 mt-2 w-30 bg-gray-700 rounded-md shadow-lg z-20 p-1 justify-between ">
-                    <button hx-get="{% url 'update_site' site.id %}" hx-target="#list-sites-container-content"
+                    {#                    <a hx-get="{% url 'update_site' site.id %}" hx-target="#list-sites-container-content"#}
+                    <a href="{% url 'update_site' site.id %}"
                             hx-swap="outerHTML"
                             class="block px-4 py-2 bg-indigo-600 text-white font-semibold rounded hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-indigo-500 shadow-md transition duration-150 ease-in-out w-full text-left">
                         Settings
-                    </button>
+                    </a>
                     <button hx-get="{% url 'delete_site' site.id %}" hx-target="#list-sites-container-content"
                             hx-swap="outerHTML"
                             class="block px-4 py-2 bg-red-600 text-white font-semibold rounded hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-red-500 shadow-md transition duration-150 ease-in-out w-full text-left">
@@ -59,11 +60,11 @@
         <div class="mt-4 flex justify-between items-center">
             <div></div>
             <div>
-                <button hx-get="{% url 'sessions_view' site.id %}" hx-target="#list-sites-container"
-                        hx-swap="outerHTML"
+                <a href="{% url 'sessions_view' site.id %}"
+                   type="button"
                         class="px-2 py-1 bg-indigo-600 text-white font-semibold rounded hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-indigo-500 shadow-md transition duration-150 ease-in-out">
                     View Sessions
-                </button>
+                </a>
                 <button hx-get="{% url 'get_snippet_data' user_id=request.user.id site_id=site.id %}"
                         hx-target="#snippet-content"
                         @click="showSnippetModal = true"

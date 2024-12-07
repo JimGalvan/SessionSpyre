@@ -39,7 +39,7 @@ def sites_view(request):
 @login_required
 def list_sites(request):
     sites = Site.objects.filter(user=request.user)
-    return render(request, 'sites/list_sites.html', {'sites': sites})
+    return render(request, 'sites/sites.html', {'sites': sites})
 
 
 @login_required

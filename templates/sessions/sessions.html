@@ -1,3 +1,5 @@
+{% extends 'base.html' %}
+{% block content %}
 <div id="session-container">
     <h1 class="text-2xl font-bold mb-3 text-center text-white">{{ site.name }} - Recorded Sessions</h1>
     <div class="flex h-screen rounded-lg shadow-lg">
@@ -90,3 +92,4 @@
         });
     </script>
 </div>
+{% endblock %}
