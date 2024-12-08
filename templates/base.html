@@ -73,53 +73,80 @@
     <script>
         document.addEventListener('DOMContentLoaded', function () {
             document.body.addEventListener('click', function (e) {
-                const target = e.target.closest('a[type="button"], button');
-                if (target) {
-                    const spinner = document.createElement('span');
-                    spinner.className = 'spinner';
-                    target.appendChild(spinner);
-                    target.classList.add('clicked-element-disabled');
+                try {
+                    const target = e.target.closest('a[type="button"], button');
+                    if (target) {
+                        const spinner = document.createElement('span');
+                        spinner.className = 'spinner';
+                        target.appendChild(spinner);
+                        target.classList.add('clicked-element-disabled');
 
-                    const getOrPostHtmxAttribute = target.getAttribute('hx-get') == null && target.getAttribute('hx-post') == null;
-                    const hrefNotFound = target.getAttribute('href') == null || target.getAttribute('href') === '' || target.getAttribute('href') === '#';
-                    const buttonIsNotSubmit = target.getAttribute('type') !== 'submit';
-                    const buttonHasAction = hrefNotFound && buttonIsNotSubmit && getOrPostHtmxAttribute;
+                        const getOrPostHtmxAttribute = target.getAttribute('hx-get') == null && target.getAttribute('hx-post') == null;
+                        const hrefNotFound = target.getAttribute('href') == null || target.getAttribute('href') === '' || target.getAttribute('href') === '#';
+                        const buttonIsNotSubmit = target.getAttribute('type') !== 'submit';
+                        const buttonHasAction = hrefNotFound && buttonIsNotSubmit && getOrPostHtmxAttribute;
 
-                    const form = target.closest('form');
-                    let formIsValid = true;
-                    if (form) {
-                        const invalidElements = form.querySelectorAll(':invalid');
-                        if (invalidElements.length > 0) {
-                            formIsValid = false;
+                        const form = target.closest('form');
+                        let formIsValid = true;
+                        if (form) {
+                            const invalidElements = form.querySelectorAll(':invalid');
+                            if (invalidElements.length > 0) {
+                                formIsValid = false;
+                            }
+                        }
+
+                        if (buttonHasAction || !formIsValid) {
+                            target.classList.remove('clicked-element-disabled');
+                            target.removeChild(spinner);
                         }
                     }
-
-                    if (buttonHasAction || !formIsValid) {
-                        target.classList.remove('clicked-element-disabled');
-                        target.removeChild(spinner);
-                    }
+                } catch (error) {
+                    console.error('Error handling click event:', error);
                 }
             });
 
             document.addEventListener('htmx:targetError', function (event) {
-                const target = event.target.closest('a[type="button"], button');
-                if (target) {
-                    const spinner = target.querySelector('.spinner');
-                    if (spinner) {
-                        spinner.remove();
+                try {
+                    const target = event.target.closest('a[type="button"], button');
+                    if (target) {
+                        const spinner = target.querySelector('.spinner');
+                        if (spinner) {
+                            spinner.remove();
+                        }
+                        target.classList.remove('clicked-element-disabled');
                     }
-                    target.classList.remove('clicked-element-disabled');
+                } catch (error) {
+                    console.error('Error handling htmx:targetError event:', error);
                 }
             });
 
             document.addEventListener('htmx:afterRequest', function (event) {
-                const spinner = document.querySelector('.spinner');
-                if (spinner) {
-                    spinner.remove();
+                try {
+                    const spinner = document.querySelector('.spinner');
+                    if (spinner) {
+                        spinner.remove();
+                    }
+                    const clickedElement = document.querySelector('.clicked-element-disabled');
+                    if (clickedElement) {
+                        clickedElement.classList.remove('clicked-element-disabled');
+                    }
+                } catch (error) {
+                    console.error('Error handling htmx:afterRequest event:', error);
                 }
-                const clickedElement = document.querySelector('.clicked-element-disabled');
-                if (clickedElement) {
-                    clickedElement.classList.remove('clicked-element-disabled');
+            });
+
+            window.addEventListener('pageshow', function () {
+                try {
+                    const spinner = document.querySelector('.spinner');
+                    if (spinner) {
+                        spinner.remove();
+                    }
+                    const clickedElement = document.querySelector('.clicked-element-disabled');
+                    if (clickedElement) {
+                        clickedElement.classList.remove('clicked-element-disabled');
+                    }
+                } catch (error) {
+                    console.error('Error handling pageshow event:', error);
                 }
             });
         });
