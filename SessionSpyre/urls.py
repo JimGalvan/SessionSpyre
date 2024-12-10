@@ -16,7 +16,7 @@ urlpatterns = [
     path('logout', logout_then_login, {'login_url': '/'}, name='logout'),
     path("register", user_views.RegisterView.as_view(), name="register"),
     path('admin', admin.site.urls),
-    path('accounts/profile', user_views.profile_view, name='profile'),
+    path('accounts/profile/', user_views.profile_view, name='profile'),
     path('update-timezon', user_views.update_timezone, name='update_timezone'),
     path('set-timezone', user_views.set_timezone, name='set_timezone'),
     path('check-timezone', user_views.check_timezone, name='check_timezone'),
