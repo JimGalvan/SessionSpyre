@@ -6,7 +6,10 @@ import sys
 
 def main():
     """Run administrative tasks."""
-    os.environ.setdefault('DJANGO_SETTINGS_MODULE', 'SessionSpyre.settings.prod')
+    # Use DJANGO_ENV environment variable to determine which settings to use
+    django_env = os.environ.get('DJANGO_ENV', 'development')
+    os.environ.setdefault('DJANGO_SETTINGS_MODULE', f'SessionSpyre.settings.{django_env}')
+    
     try:
         from django.core.management import execute_from_command_line
     except ImportError as exc:

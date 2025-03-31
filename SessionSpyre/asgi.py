@@ -6,7 +6,9 @@ from channels.routing import ProtocolTypeRouter, URLRouter
 from channels.security.websocket import AllowedHostsOriginValidator
 from django.core.asgi import get_asgi_application
 
-os.environ.setdefault('DJANGO_SETTINGS_MODULE', 'SessionSpyre.settings.prod')
+# Use DJANGO_ENV environment variable to determine which settings to use
+django_env = os.environ.get('DJANGO_ENV', 'production')
+os.environ.setdefault('DJANGO_SETTINGS_MODULE', f'SessionSpyre.settings.{django_env}')
 
 django.setup()
 

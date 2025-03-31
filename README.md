@@ -54,6 +54,32 @@ SessionSpyre is a comprehensive web application designed to track and replay use
     python manage.py runserver
     ```
 
+### Environment Variables
+
+The project now uses environment variables to differentiate between development and production settings.
+
+1. **Copy the example environment file**:
+    ```sh
+    cp .env.example .env
+    ```
+
+2. **Configure your environment variables in the .env file**:
+    - `DJANGO_ENV`: Set to 'development' or 'production'
+    - `SECRET_KEY`: Your Django secret key
+    - `DEBUG`: Set to True for development, False for production
+    - `DB_NAME`, `DB_USER`, `DB_PASSWORD`, `DB_HOST`, `DB_PORT`: Database connection details
+    - `DATABASE_URL`: PostgreSQL connection URL (used in production)
+    - `REDIS_URL`: Redis connection URL (used in production for Channels)
+
+3. **Running with specific environment**:
+    ```sh
+    # For development (default)
+    python manage.py runserver
+    
+    # For production
+    DJANGO_ENV=production python manage.py runserver
+    ```
+
 ### Usage
 
 1. **Access the application**: Open your browser and navigate to `http://127.0.0.1:8000/`.
