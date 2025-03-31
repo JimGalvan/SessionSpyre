@@ -23,6 +23,7 @@ INSTALLED_APPS = [
     'widget_tweaks',
     'session_tracker',
     "django_browser_reload",
+    'django_extensions',
 ]
 
 MIDDLEWARE = [
