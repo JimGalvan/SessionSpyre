@@ -55,7 +55,7 @@ class Migration(migrations.Migration):
     initial = True
 
     dependencies = [
-        ('session_tracker', '0001_initial'),
+        # No dependencies - this ensures it runs first
     ]
 
     operations = [
