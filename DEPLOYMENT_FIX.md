@@ -6,46 +6,52 @@ This document explains how to fix the migration issues encountered in the produc
 
 ## Solution
 
-We've created a special initial migration that will run before any other migrations to ensure the necessary tables exist:
+We've created a Django management command that will set up the necessary tables before running migrations:
 
-1. `0001_initial_fix.py` - Creates the essential tables before any other migrations run
-2. `0008_fix_missing_tables.py` - Creates any remaining tables that should have been created by earlier migrations
-3. `0009_fix_migration_records.py` - Ensures all migration records are properly recorded in the django_migrations table
+1. `setup_initial_tables` - Creates the essential tables before any migrations run
+2. Regular migrations will then run normally after tables are created
 
 ## Deployment Steps
 
-1. **Deploy the updated code** to Railway.com with these new migrations included
+1. **SSH into your Railway.com environment** or use the Railway CLI
 
-2. **The migrations will run automatically** when Railway's deployment process executes the standard migrate command
+2. **Run the setup command first**:
+   ```bash
+   python manage.py setup_initial_tables
+   ```
 
-3. **No manual SQL execution is required** - everything is handled in the migration files
+3. **Then run migrations**:
+   ```bash
+   python manage.py migrate
+   ```
 
 ## Verification
 
 After deployment, you should be able to verify that:
 
-1. All tables now exist in the database
-2. The application starts successfully without migration errors
+1. The `session_tracker_useraccount` table exists in the database
+2. All migrations run successfully
 3. The admin interface works as expected
 
 ## Technical Details
 
-The migration fix works by:
+The fix works by:
 
-1. Creating the essential tables (`session_tracker_useraccount` and `django_migrations`) before any other migrations run
-2. Creating any remaining required tables with the correct structure
-3. Adding foreign key constraints for relationships between tables
-4. Ensuring all migration records are properly recorded in the django_migrations table
+1. Using a custom management command to create the essential `session_tracker_useraccount` table
+2. Creating the table with the exact schema needed by Django
+3. Using `IF NOT EXISTS` to ensure the command is safe to run multiple times
+4. Running this setup before any migrations attempt to use the table
 
-This approach is safe to run multiple times, as it only creates tables and records if they don't already exist.
+This approach is safe and idempotent - it can be run multiple times without causing issues.
 
 ## Troubleshooting
 
-If you continue to experience issues after deploying this fix:
+If you experience issues:
 
-1. Check the deployment logs to see if the migrations are being applied
-2. If needed, you can manually trigger the migration process in Railway by running a custom command
-3. Contact the development team for further assistance
+1. Check that you can connect to the database
+2. Verify the setup command runs without errors
+3. Look for any error messages in the migration output
+4. Contact the development team if issues persist
 
 ## Prevention
 
@@ -53,4 +59,5 @@ To prevent similar issues in the future:
 
 1. Always ensure database migrations are part of the CI/CD pipeline testing
 2. Create database schema verification tests
-3. Consider using Django's test suite to verify migrations before deployment 
+3. Consider using Django's test suite to verify migrations before deployment
+4. Add pre-deployment checks for required database structures 
