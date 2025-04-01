@@ -6,16 +6,17 @@ This document explains how to fix the migration issues encountered in the produc
 
 ## Solution
 
-We've created two special migrations that will automatically fix the database schema without any manual intervention:
+We've created a special initial migration that will run before any other migrations to ensure the necessary tables exist:
 
-1. `0008_fix_missing_tables.py` - Creates any missing tables that should have been created by earlier migrations
-2. `0009_fix_migration_records.py` - Ensures all migration records are properly recorded in the django_migrations table
+1. `0001_initial_fix.py` - Creates the essential tables before any other migrations run
+2. `0008_fix_missing_tables.py` - Creates any remaining tables that should have been created by earlier migrations
+3. `0009_fix_migration_records.py` - Ensures all migration records are properly recorded in the django_migrations table
 
 ## Deployment Steps
 
 1. **Deploy the updated code** to Railway.com with these new migrations included
 
-2. **The migration will run automatically** when Railway's deployment process executes the standard migrate command
+2. **The migrations will run automatically** when Railway's deployment process executes the standard migrate command
 
 3. **No manual SQL execution is required** - everything is handled in the migration files
 
@@ -31,10 +32,10 @@ After deployment, you should be able to verify that:
 
 The migration fix works by:
 
-1. Checking if the `session_tracker_useraccount` table exists in the database
-2. If not, it creates all required tables with the correct structure
-3. It adds foreign key constraints for relationships between tables
-4. It ensures all migration records are properly recorded in the django_migrations table
+1. Creating the essential tables (`session_tracker_useraccount` and `django_migrations`) before any other migrations run
+2. Creating any remaining required tables with the correct structure
+3. Adding foreign key constraints for relationships between tables
+4. Ensuring all migration records are properly recorded in the django_migrations table
 
 This approach is safe to run multiple times, as it only creates tables and records if they don't already exist.
 
