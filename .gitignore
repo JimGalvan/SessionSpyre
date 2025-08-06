@@ -2,6 +2,7 @@
 #User Specific
 *.userprefs
 *.usertasks
+CLAUDE.md
 
 #Mono Project Files
 *.pidb
