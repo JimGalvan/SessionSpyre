@@ -40,3 +40,15 @@ CSRF_TRUSTED_ORIGINS = [
 ]
 
 SCRIPT_URL = 'https://sessionspyre-clientjs.pages.dev/record.js'
+
+USE_REDIS_SESSION_BUFFER = env.bool('USE_REDIS_SESSION_BUFFER', default=True)
+REDIS_SESSION_TTL = env.int('REDIS_SESSION_TTL', default=86400)
+REDIS_SESSION_MAX_EVENTS = env.int('REDIS_SESSION_MAX_EVENTS', default=50000)
+REDIS_URL = env('REDIS_URL')
+
+USE_S3_SESSION_ARCHIVE = env.bool('USE_S3_SESSION_ARCHIVE', default=True)
+AWS_ACCESS_KEY_ID = env('AWS_ACCESS_KEY_ID', default='')
+AWS_SECRET_ACCESS_KEY = env('AWS_SECRET_ACCESS_KEY', default='')
+AWS_STORAGE_BUCKET_NAME = env('AWS_STORAGE_BUCKET_NAME', default='')
+AWS_S3_REGION_NAME = env('AWS_S3_REGION_NAME', default='us-east-1')
+S3_SESSION_PREFIX = env('S3_SESSION_PREFIX', default='sessions')

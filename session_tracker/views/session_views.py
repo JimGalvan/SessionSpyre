@@ -1,10 +1,14 @@
+import json
 from datetime import datetime
 from datetime import timedelta
 
 import pytz
+from asgiref.sync import async_to_sync
+from django.conf import settings
 from django.shortcuts import render
 
 from session_tracker.models import UserSession, Site
+from session_tracker.services import RedisSessionService, S3SessionService
 
 
 def sessions_view(request, site_id):
@@ -17,7 +21,27 @@ def sessions_view(request, site_id):
 
 def replay_session(request, session_id):
     session: UserSession = UserSession.objects.get(id=session_id)
-    return render(request, 'sessions/session_player.html', {'session': session})
+
+    events_json = None
+
+    if getattr(settings, 'USE_REDIS_SESSION_BUFFER', False) and session.live:
+        redis_service = RedisSessionService()
+        events = async_to_sync(redis_service.get_events)(str(session.id))
+        if events:
+            events_json = json.dumps(events)
+
+    if not events_json and session.archived and session.events_s3_key:
+        s3_service = S3SessionService()
+        events = s3_service.download_session(session.events_s3_key)
+        events_json = json.dumps(events)
+
+    if not events_json:
+        events_json = session.get_events_json
+
+    return render(request, 'sessions/session_player.html', {
+        'session': session,
+        'events_json': events_json
+    })
 
 
 def delete_session(request, session_id):

@@ -7,8 +7,10 @@ from urllib.parse import parse_qs
 import pytz
 from asgiref.sync import sync_to_async
 from channels.generic.websocket import AsyncWebsocketConsumer
+from django.conf import settings as django_settings
 
 from .models import UserSession, Site, UserAccount
+from .services import RedisSessionService, S3SessionService
 from .utils.session_utils import validate_site_key, get_exclusion_rules, is_ip_excluded, \
     is_domain_or_subdomain_excluded, is_session_id_valid, is_url_pattern_excluded, get_client_ip
 
@@ -29,6 +31,7 @@ class SessionConsumer(AsyncWebsocketConsumer):
         self.site_key = None
         self.group_name = None
         self.session_id = None
+        self.redis_service = RedisSessionService() if getattr(django_settings, 'USE_REDIS_SESSION_BUFFER', False) else None
 
     async def connect(self):
         query_string = self.scope['query_string'].decode()
@@ -96,13 +99,47 @@ class SessionConsumer(AsyncWebsocketConsumer):
     async def disconnect(self, close_code):
         logger.info(f"SessionConsumer: Disconnecting from session {self.session_id} with close code {close_code}")
 
-        # Leave the session group
         await self.channel_layer.group_discard(self.group_name, self.channel_name)
+
+        if self.redis_service:
+            await self.flush_redis_to_postgres()
 
         await self.set_session_live_status(False)
         await self.notify_live_status(False)
 
-        self.connection_closed = True  # Set the flag to True
+        self.connection_closed = True
+
+    async def flush_redis_to_postgres(self):
+        try:
+            events = await self.redis_service.get_events(self.session_id)
+            if not events:
+                return
+
+            session = await sync_to_async(UserSession.objects.filter(id=self.session_id).first)()
+            if not session:
+                await self.redis_service.delete_session(self.session_id)
+                return
+
+            use_s3 = getattr(django_settings, 'USE_S3_SESSION_ARCHIVE', False)
+            if use_s3:
+                s3_service = S3SessionService()
+                s3_key = await sync_to_async(s3_service.upload_session)(
+                    str(session.id), str(session.site_id), events
+                )
+                session.events_s3_key = s3_key
+                session.events_count = len(events)
+                session.archived = True
+                session.events = None
+                logger.info(f"SessionConsumer: Archived {len(events)} events to S3 for session {self.session_id}")
+            else:
+                session.events = events
+                session.events_count = len(events)
+                logger.info(f"SessionConsumer: Flushed {len(events)} events to PostgreSQL for session {self.session_id}")
+
+            await sync_to_async(session.save)()
+            await self.redis_service.delete_session(self.session_id)
+        except Exception as e:
+            logger.error(f"SessionConsumer: Failed to flush session {self.session_id}: {e}")
 
     async def receive(self, text_data=None, bytes_data=None):
         logger.info(f"SessionConsumer: Received data in session {self.session_id}")
@@ -159,9 +196,11 @@ class SessionConsumer(AsyncWebsocketConsumer):
                 await self.create_new_session(events, site, user_id)
 
             else:
-                # If the session is still active, continue recording events
-                session.events.extend(events)
-                await sync_to_async(session.save)()
+                if self.redis_service:
+                    await self.redis_service.append_events(self.session_id, events)
+                else:
+                    session.events.extend(events)
+                    await sync_to_async(session.save)()
 
         await self.notify_live_status(True)
 
@@ -185,14 +224,29 @@ class SessionConsumer(AsyncWebsocketConsumer):
         await self.send(text_data=event['text'])
 
     async def create_new_session(self, events, site, user_id, session_id=None):
-        session = await sync_to_async(UserSession.objects.create)(
-            id=self.session_id,
-            session_id=self.session_id,
-            site=site,
-            user_id=user_id,
-            events=events,
-            live=True
-        )
+        if self.redis_service:
+            await sync_to_async(UserSession.objects.create)(
+                id=self.session_id,
+                session_id=self.session_id,
+                site=site,
+                user_id=user_id,
+                events=[],
+                live=True
+            )
+            await self.redis_service.append_events(self.session_id, events)
+            await self.redis_service.set_metadata(self.session_id, {
+                'site_id': str(site.id),
+                'user_id': user_id,
+            })
+        else:
+            await sync_to_async(UserSession.objects.create)(
+                id=self.session_id,
+                session_id=self.session_id,
+                site=site,
+                user_id=user_id,
+                events=events,
+                live=True
+            )
 
         logger.info(f"SessionConsumer: New session {self.session_id} started.")
 

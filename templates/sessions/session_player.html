@@ -90,7 +90,7 @@
     <script>
         // Define a function to initialize the player
         function initializePlayer() {
-            let events = JSON.parse('{{ session.get_events_json|escapejs }}');
+            let events = JSON.parse('{{ events_json|escapejs }}');
             const playerContainer = document.getElementById('rrweb-player');
             
             const rrwebPlayerInstance = new rrwebPlayer({

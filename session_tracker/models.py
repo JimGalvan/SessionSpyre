@@ -80,11 +80,14 @@ class UserSession(models.Model):
     site = models.ForeignKey(Site, on_delete=models.CASCADE, related_name='sessions')
     session_id = models.CharField(max_length=255, unique=True)
     user_id = models.CharField(max_length=255)
-    events = models.JSONField()
+    events = models.JSONField(null=True, blank=True)
     live = models.BooleanField(default=False)
     current_ip_address = models.GenericIPAddressField(blank=True, null=True)
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
+    events_s3_key = models.CharField(max_length=512, null=True, blank=True)
+    events_count = models.IntegerField(default=0)
+    archived = models.BooleanField(default=False)
 
     class Meta:
         indexes = [
