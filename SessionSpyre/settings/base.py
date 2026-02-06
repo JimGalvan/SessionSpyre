@@ -163,15 +163,15 @@ AUTH_USER_MODEL = 'session_tracker.UserAccount'
 
 SCRIPT_URL = ''
 
-USE_REDIS_SESSION_BUFFER = False
+USE_REDIS_SESSION_BUFFER = True
 REDIS_SESSION_TTL = 86400  # 24 hours
 REDIS_SESSION_MAX_EVENTS = 50000
 REDIS_URL = 'redis://localhost:6379/0'
 
-USE_S3_SESSION_ARCHIVE = False
-AWS_ACCESS_KEY_ID = ''
-AWS_SECRET_ACCESS_KEY = ''
-AWS_STORAGE_BUCKET_NAME = ''
-AWS_S3_REGION_NAME = 'us-east-1'
-S3_SESSION_PREFIX = 'sessions'
+USE_S3_SESSION_ARCHIVE = os.environ.get('USE_S3_SESSION_ARCHIVE', 'True').lower() == 'true'
+AWS_ACCESS_KEY_ID = os.environ.get('AWS_ACCESS_KEY_ID', '')
+AWS_SECRET_ACCESS_KEY = os.environ.get('AWS_SECRET_ACCESS_KEY', '')
+AWS_STORAGE_BUCKET_NAME = os.environ.get('AWS_STORAGE_BUCKET_NAME', 'test-sessionspyre')
+AWS_S3_REGION_NAME = os.environ.get('AWS_S3_REGION_NAME', 'us-west-2')
+S3_SESSION_PREFIX = os.environ.get('S3_SESSION_PREFIX', 'sessions')
 

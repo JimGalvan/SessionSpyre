@@ -4,6 +4,11 @@
 *.usertasks
 CLAUDE.md
 
+# Environment files with secrets
+.env
+.env.local
+.env.*.local
+
 #Mono Project Files
 *.pidb
 *.resources
