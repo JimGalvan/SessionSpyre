@@ -45,11 +45,11 @@ class RedisSessionService:
 
         pipeline = r.pipeline()
         for event in events:
-            pipeline.rpush(events_key, json.dumps(event))
+            await pipeline.rpush(events_key, json.dumps(event))
 
         ttl = getattr(settings, 'REDIS_SESSION_TTL', 86400)
-        pipeline.expire(events_key, ttl)
-        pipeline.expire(meta_key, ttl)
+        await pipeline.expire(events_key, ttl)
+        await pipeline.expire(meta_key, ttl)
 
         results = await pipeline.execute()
         return results[-3] if len(results) > 2 else results[0]
@@ -73,8 +73,8 @@ class RedisSessionService:
                           for k, v in metadata.items()}
 
         pipeline = r.pipeline()
-        pipeline.hset(key, mapping=string_metadata)
-        pipeline.expire(key, getattr(settings, 'REDIS_SESSION_TTL', 86400))
+        await pipeline.hset(key, mapping=string_metadata)
+        await pipeline.expire(key, getattr(settings, 'REDIS_SESSION_TTL', 86400))
         await pipeline.execute()
 
     async def get_metadata(self, session_id: str) -> dict:
@@ -100,8 +100,8 @@ class RedisSessionService:
     async def set_ttl(self, session_id: str, ttl_seconds: int) -> None:
         r = await self.get_redis()
         pipeline = r.pipeline()
-        pipeline.expire(self._events_key(session_id), ttl_seconds)
-        pipeline.expire(self._meta_key(session_id), ttl_seconds)
+        await pipeline.expire(self._events_key(session_id), ttl_seconds)
+        await pipeline.expire(self._meta_key(session_id), ttl_seconds)
         await pipeline.execute()
 
     async def refresh_ttl(self, session_id: str) -> None:
