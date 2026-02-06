@@ -161,6 +161,11 @@ LOGGING = {
 
 AUTH_USER_MODEL = 'session_tracker.UserAccount'
 
+# Django user session settings
+SESSION_COOKIE_AGE = 60 * 60 * 24 * 14  # 2 weeks in seconds
+SESSION_EXPIRE_AT_BROWSER_CLOSE = False
+SESSION_SAVE_EVERY_REQUEST = True  # Refresh session on each request
+
 SCRIPT_URL = ''
 
 USE_REDIS_SESSION_BUFFER = True
