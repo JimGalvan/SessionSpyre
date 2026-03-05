@@ -37,7 +37,6 @@ MIDDLEWARE = [
     'django.contrib.messages.middleware.MessageMiddleware',
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
     'session_tracker.middleware.TimezoneMiddleware',
-    'django.middleware.csrf.CsrfViewMiddleware',
     "django_browser_reload.middleware.BrowserReloadMiddleware",
 ]
 

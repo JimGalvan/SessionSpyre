@@ -39,6 +39,15 @@ CSRF_TRUSTED_ORIGINS = [
     'https://sessionspyre-production.up.railway.app'
 ]
 
+# Railway is behind an HTTPS proxy — tell Django to trust the forwarded protocol header
+SECURE_PROXY_SSL_HEADER = ('HTTP_X_FORWARDED_PROTO', 'https')
+
+# Session cookie must only be sent over HTTPS in production
+SESSION_COOKIE_SECURE = True
+
+# CSRF cookie must only be sent over HTTPS in production
+CSRF_COOKIE_SECURE = True
+
 SCRIPT_URL = 'https://sessionspyre-clientjs.pages.dev/record.js'
 
 USE_REDIS_SESSION_BUFFER = env.bool('USE_REDIS_SESSION_BUFFER', default=True)
