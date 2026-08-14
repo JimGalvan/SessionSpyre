@@ -1,4 +1,8 @@
 (async function () {
+    // Captured synchronously so it still points at this <script> element,
+    // regardless of what loads or awaits happen later.
+    const OWN_SCRIPT_SRC = document.currentScript && document.currentScript.src;
+
     const REQUIRED_CONFIG_KEYS = ['userId', 'siteId', 'siteKey'];
     const COOKIE_NAMES = ['sessionid', 'authToken', 'JSESSIONID', 'csrftoken'];
     const TOKEN_NAMES = ['authToken', 'sessionToken', 'jwtToken', 'accessToken'];
@@ -29,11 +33,22 @@
         },
     };
 
+    let rrwebLoaded = false;
+
     async function loadRrwebScript() {
         return new Promise((resolve, reject) => {
             const script = document.createElement('script');
-            script.src = 'https://cdn.jsdelivr.net/npm/rrweb@latest/dist/rrweb.min.js';
-            script.onload = resolve;
+            script.src = OWN_SCRIPT_SRC
+                ? new URL('vendor/rrweb.min.js', OWN_SCRIPT_SRC).href
+                : 'https://cdn.jsdelivr.net/npm/rrweb@2.0.0-alpha.13/dist/rrweb.min.js';
+            script.onload = () => {
+                if (typeof rrweb === 'undefined' || typeof rrweb.record !== 'function') {
+                    reject(new Error('rrweb script loaded but window.rrweb was not defined (likely blocked/stubbed by a browser extension)'));
+                    return;
+                }
+                rrwebLoaded = true;
+                resolve();
+            };
             script.onerror = reject;
             document.head.appendChild(script);
         });
@@ -247,7 +262,7 @@
     }
 
     function checkConfigAndInitialize() {
-        if (window.recordConfig) {
+        if (window.recordConfig && rrwebLoaded) {
             clearInterval(configCheckInterval);
             clearTimeout(timeoutHandle);
             initializeRecording();
