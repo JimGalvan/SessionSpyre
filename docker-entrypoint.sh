@@ -1,6 +1,30 @@
 #!/bin/bash
 set -eu
 
+# DB_NAME/DB_USER/DB_PASSWORD come from the Dockerfile's ENV — fixed at build
+# time since Postgres lives in this same container and we own both sides.
+
+# --- Start Postgres (already initialized by the postgresql package) and
+# create the app's role/database on first run ---
+service postgresql start
+
+until su postgres -c "pg_isready -q"; do
+  sleep 1
+done
+
+if ! su postgres -c "psql -tAc \"SELECT 1 FROM pg_roles WHERE rolname='$DB_USER'\"" | grep -q 1; then
+  su postgres -c "psql -c \"CREATE ROLE \\\"$DB_USER\\\" LOGIN PASSWORD '$DB_PASSWORD';\""
+fi
+
+if ! su postgres -c "psql -tAc \"SELECT 1 FROM pg_database WHERE datname='$DB_NAME'\"" | grep -q 1; then
+  su postgres -c "psql -c \"CREATE DATABASE \\\"$DB_NAME\\\" OWNER \\\"$DB_USER\\\";\""
+fi
+
+# --- Django setup ---
+cd /workspace
+python manage.py migrate --noinput
+python manage.py collectstatic --noinput
+
 AUTH_DIR=/claude-auth
 mkdir -p "$AUTH_DIR" /root/.claude
 

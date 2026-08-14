@@ -18,6 +18,9 @@ SECRET_KEY = str(env('SECRET_KEY'))
 # ALLOWED_HOSTS = ['127.0.0.1', 'localhost']
 ALLOWED_HOSTS = ['*']
 
+# Allows testing the dev server through an ngrok tunnel (random subdomain each run)
+CSRF_TRUSTED_ORIGINS = ['https://*.ngrok-free.app']
+
 DATABASES = {
     'default': {
         'ENGINE': 'django.db.backends.postgresql',

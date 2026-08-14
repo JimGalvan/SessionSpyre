@@ -10,10 +10,21 @@ RUN apt-get update && apt-get install -y \
     procps \
     nodejs \
     npm \
+    postgresql \
     && rm -rf /var/lib/apt/lists/*
 
 COPY requirements.txt .
 RUN pip install --no-cache-dir -r requirements.txt
+
+# App/DB environment — Postgres runs in this same container, so these are
+# fixed at build time rather than pulled from a .env file.
+ENV DJANGO_ENV=development \
+    SECRET_KEY=dev-insecure-secret-key-change-me \
+    DB_NAME=sessionspyre \
+    DB_USER=sessionspyre \
+    DB_PASSWORD=sessionspyre \
+    DB_HOST=localhost \
+    DB_PORT=5432
 
 # Install Claude Code
 RUN npm install -g @anthropic-ai/claude-code
@@ -38,6 +49,9 @@ COPY docker-entrypoint.sh /usr/local/bin/docker-entrypoint.sh
 RUN sed -i 's/\r$//' /usr/local/bin/docker-entrypoint.sh && \
     chmod +x /usr/local/bin/docker-entrypoint.sh
 
+# App code
+COPY . .
+
 # Student shell quality-of-life improvements
 RUN echo 'export PS1="ai-course:\\w# "' >> /root/.bashrc && \
     echo 'alias ll="ls -alF"' >> /root/.bashrc && \
@@ -46,5 +60,7 @@ RUN echo 'export PS1="ai-course:\\w# "' >> /root/.bashrc && \
     echo 'alias python="python3"' >> /root/.bashrc && \
     echo 'alias pip="pip3"' >> /root/.bashrc
 
+EXPOSE 8000
+
 ENTRYPOINT ["/usr/local/bin/docker-entrypoint.sh"]
-CMD ["/bin/bash"]
+CMD ["daphne", "-b", "0.0.0.0", "-p", "8000", "SessionSpyre.asgi:application"]
