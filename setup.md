@@ -20,9 +20,10 @@ These findings come from `requirements.txt`, `pytest.ini`, `manage.py`, `Session
 | Which can be mocked or omitted | All of them. The repo carries **no `.env` file** — only `.env.example`, which lists variable names without values. Postgres runs inside the container, so the sandbox defines its own throwaway credentials in the Dockerfile's `ENV` block. `DATABASE_URL` and `REDIS_URL` are production-only and omitted. No real credential exists anywhere in the repo or the image. |
 | Build / run commands the repo defines | `manage.py migrate`, `manage.py collectstatic`, `daphne SessionSpyre.asgi:application` (ASGI; Channels overrides `runserver`) |
 | Smallest folder safely mountable | The repo root. The agent edits `session_tracker/`, `templates/`, `SessionSpyre/settings/`, and `tests/`, while pytest resolves from the root-level `pytest.ini`. Nothing above the repo root is needed. |
+| Cross-origin behaviour | The app has settings that only take effect behind a public HTTPS origin: `base.py` sets `SECURE_PROXY_SSL_HEADER` (commented "ngrok in dev, Railway in prod"), `development.py` sets `CSRF_TRUSTED_ORIGINS = ['https://*.ngrok-free.app']`, and `context_processors.py` derives the snippet's `SCRIPT_URL` from the request host. SessionSpyre ships a tracking script loaded by *third-party* sites, so cross-origin is the primary use case, not an edge case. None of this is reachable over `localhost` or `file://` — an agent needs a tunnel to reproduce or fix bugs in it. |
 | Does the agent need network? | **Yes, for two reasons.** See §5 for the test results. |
 
-Those findings account for every included tool: `postgresql` because there is no SQLite fallback; Playwright and Chromium for the browser-driven tests; `nodejs` and `npm` only to install Claude Code; `git` for diffs and history; `curl` and `ca-certificates` for package installation and egress checks; and `procps` to inspect the background server.
+Those findings account for every included tool: `postgresql` because there is no SQLite fallback; Playwright and Chromium for the browser-driven tests; `nodejs` and `npm` only to install Claude Code; `git` for diffs and history; `curl` and `ca-certificates` for package installation and egress checks; `procps` to inspect the background server; and `ngrok` for the cross-origin behaviour above.
 
 ---
 
@@ -210,7 +211,31 @@ Count Name
 (only /root/.pki and /root/.cache/ms-playwright — both container-local)
 ```
 
-Every write outside `/workspace` went to `/tmp`, `/root`, or `/usr` inside the disposable container layer and is destroyed by `--rm`. No host path outside the repo was touched. The agent's persistent output, including source edits and `staticfiles/`, appeared on the host at `C:\Users\jimmy\PycharmProjects\SessionSpyre`, confirming that the bind mount worked.
+Every write outside `/workspace` went to `/tmp`, `/root`, or `/usr` inside the disposable container layer and is destroyed by `--rm`. No host path outside the repo was touched.
+
+The other half of the check is that intended output *does* reach the host. Writing one file to each location from inside the container:
+
+```bash
+echo "written by the agent inside the container" > /workspace/agent-output-probe.md
+echo "scratch, should not survive" > /tmp/scratch-probe.txt
+```
+
+Then, after the container exited, from the host — **Windows PowerShell:**
+
+```powershell
+Get-Content agent-output-probe.md
+Test-Path scratch-probe.txt
+```
+
+```
+--- host: durable output from /workspace ---
+written by the agent inside the container
+
+--- host: scratch file from /tmp ---
+False
+```
+
+The `/workspace` write survived the container's deletion and is readable on the host at `C:\Users\jimmy\PycharmProjects\SessionSpyre`. The `/tmp` write did not exist on the host at any point and vanished with `--rm`. That is the persistence split working in both directions — the same mechanism that carried the agent's source edits and `staticfiles/` through during the smoke test.
 
 ---
 
@@ -234,7 +259,9 @@ Three paths persist:
 
 - **`/workspace`** (bind mount) contains the source edits.
 - **`sessionspyre-pgdata`** stores recorded sessions and accounts. Without it, exiting the container wipes the database and leaves the smoke test with no history to replay.
-- **`sessionspyre-claude-auth`** contains only the agent credential. It is `chmod 600` in a named volume and is not baked into an image layer that could be pushed to a registry.
+- **`sessionspyre-claude-auth`** contains only the agent credential. It is `chmod 600` in a named volume, deliberately kept *out* of the image.
+
+**The risk that last choice prevents:** the obvious shortcut is to bake the credential into the image so the agent never has to log in again. Docker image layers are readable by anyone who can pull the image, and layer contents survive even if a later layer deletes the file — so publishing that image, or sharing it with a teammate, would hand over a working credential for my Anthropic account. Anyone holding it could run agent sessions billed to me and read whatever those sessions touch. Keeping it in a named volume means the credential exists only on this machine's Docker storage and never travels with the image. The same reasoning is why `SECRET_KEY` and `DB_PASSWORD` being `ENV` instructions is listed as a live risk in Q6 — that is the mistake I avoided here but have not yet fixed there.
 
 Persistence is limited to these paths. Everything else is ephemeral.
 
@@ -251,8 +278,11 @@ Each dependency traces back to a finding in §1:
 | `git` | Agent inspects diffs and history |
 | `curl`, `ca-certificates` | Package installation over HTTPS and the egress check in §5 |
 | `procps` | Inspecting the backgrounded daphne process |
+| `ngrok` | The cross-origin row in §1. `CSRF_TRUSTED_ORIGINS`, `SECURE_PROXY_SSL_HEADER`, and the request-derived `SCRIPT_URL` only take effect behind a public HTTPS origin, and the product itself is a script loaded by third-party sites. An agent cannot reproduce a cross-origin bug from `localhost`. |
 
-The starter image included **`nano`** and **`opencode-ai`**, but both were removed. The agent uses its own editing tools instead of a terminal editor, and a second agent is unnecessary. **`ngrok`** remains even though the agent does not need it. SessionSpyre's tracking script runs on *external* sites, so testing that function requires a public origin. If the sandbox is later limited to agent tasks, `ngrok` should be removed first.
+The starter image included **`nano`** and **`opencode-ai`**, but both were removed. The agent uses its own editing tools instead of a terminal editor, and a second agent is unnecessary.
+
+`ngrok` earns its place through a bug this project actually hit: registering a user through the tunnel returned `403 Origin checking failed` because the ngrok host was not in `CSRF_TRUSTED_ORIGINS`. That failure is invisible over `localhost` — the setting is not consulted for same-origin requests. An agent asked to fix cross-origin, CSRF, or forwarded-scheme behaviour needs a public origin to reproduce the problem at all, which is why the tunnel client lives in the image rather than only on the host.
 
 Chromium's OS libraries are listed explicitly. The alternative, `playwright install --with-deps`, assumes Ubuntu and fails on Debian trixie while looking for `ttf-unifont` and `ttf-ubuntu-font-family`.
 
