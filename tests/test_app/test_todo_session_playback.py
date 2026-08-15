@@ -1,9 +1,3 @@
-"""
-Drives the standalone todo app (tests/todo-app.html) with a real browser so
-SessionSpyre's tracking snippet embedded in that page has real interactions
-to record. No assertions on purpose — this isn't testing the todo app, it's
-generating session data to inspect in the SessionSpyre dashboard.
-"""
 from pathlib import Path
 
 TODO_APP_URL = (Path(__file__).parent / "todo-app.html").as_uri()
