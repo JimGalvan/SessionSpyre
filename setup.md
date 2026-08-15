@@ -1,4 +1,4 @@
-# SessionSpyre — Agent Sandbox Setup
+# SessionSpyre  Agent Sandbox Setup
 
 Run a coding agent against this repo with clear limits on what it can access. The checks below show how those limits were tested.
 
@@ -6,7 +6,7 @@ Run a coding agent against this repo with clear limits on what it can access. Th
 
 ---
 
-## 1. Codebase inspection — what the agent actually needs
+## 1. Codebase inspection, what the agent actually needs
 
 These findings come from `requirements.txt`, `pytest.ini`, `manage.py`, `SessionSpyre/settings/*`, `.env.example`, and `templates/base.html`. Each tool in the Dockerfile maps to one of them.
 
@@ -17,10 +17,10 @@ These findings come from `requirements.txt`, `pytest.ini`, `manage.py`, `Session
 | Test framework | pytest + `pytest-django` + `pytest-playwright` |
 | Local services | **PostgreSQL only.** `development.py` hardcodes `django.db.backends.postgresql` with no SQLite fallback, so migrations and tests need a real Postgres instance. Redis appears in `prod.py`, but development uses `InMemoryChannelLayer`, so Redis is **not** installed. |
 | Env vars / credentials referenced | `SECRET_KEY`, `DB_NAME`, `DB_USER`, `DB_PASSWORD`, `DB_HOST`, `DB_PORT` (`.env.example`); `DATABASE_URL` + `REDIS_URL` in prod only |
-| Which can be mocked or omitted | All of them. The repo carries **no `.env` file** — only `.env.example`, which lists variable names without values. Postgres runs inside the container, so the sandbox defines its own throwaway credentials in the Dockerfile's `ENV` block. `DATABASE_URL` and `REDIS_URL` are production-only and omitted. No real credential exists anywhere in the repo or the image. |
+| Which can be mocked or omitted | All of them. The repo has no `.env` file. It keeps only `.env.example`, which lists variable names without values. Postgres runs inside the container with throwaway credentials from the Dockerfile's `ENV` block. `DATABASE_URL` and `REDIS_URL` are production-only and omitted. The repo and image contain no production credentials. |
 | Build / run commands the repo defines | `manage.py migrate`, `manage.py collectstatic`, `daphne SessionSpyre.asgi:application` (ASGI; Channels overrides `runserver`) |
 | Smallest folder safely mountable | The repo root. The agent edits `session_tracker/`, `templates/`, `SessionSpyre/settings/`, and `tests/`, while pytest resolves from the root-level `pytest.ini`. Nothing above the repo root is needed. |
-| Cross-origin behaviour | The app has settings that only take effect behind a public HTTPS origin: `base.py` sets `SECURE_PROXY_SSL_HEADER` (commented "ngrok in dev, Railway in prod"), `development.py` sets `CSRF_TRUSTED_ORIGINS = ['https://*.ngrok-free.app']`, and `context_processors.py` derives the snippet's `SCRIPT_URL` from the request host. SessionSpyre ships a tracking script loaded by *third-party* sites, so cross-origin is the primary use case, not an edge case. None of this is reachable over `localhost` or `file://` — an agent needs a tunnel to reproduce or fix bugs in it. |
+| Cross-origin behaviour | Some settings take effect only behind a public HTTPS origin. `base.py` sets `SECURE_PROXY_SSL_HEADER` (commented "ngrok in dev, Railway in prod"), `development.py` sets `CSRF_TRUSTED_ORIGINS = ['https://*.ngrok-free.app']`, and `context_processors.py` derives the snippet's `SCRIPT_URL` from the request host. SessionSpyre's tracking script runs on *third-party* sites, making cross-origin behaviour a primary use case. An agent needs a tunnel because `localhost` and `file://` cannot exercise these paths. |
 | Does the agent need network? | **Yes, for two reasons.** See §5 for the test results. |
 
 Those findings account for every included tool: `postgresql` because there is no SQLite fallback; Playwright and Chromium for the browser-driven tests; `nodejs` and `npm` only to install Claude Code; `git` for diffs and history; `curl` and `ca-certificates` for package installation and egress checks; `procps` to inspect the background server; and `ngrok` for the cross-origin behaviour above.
@@ -91,10 +91,10 @@ ls: cannot access '/workspace/.env': No such file or directory
 ```
 
 - `/root/.ssh` is **empty**. It belongs to the container, not the host. `/root/.aws`, `/host`, `/mnt/c`, and `/c/Users/jimmy` do not exist in the container.
-- **No `.env` file exists.** It was deleted from the repo, so there is no credential file for a prompt-injected agent to read through the bind mount. The sandbox supplies its own throwaway database values through the Dockerfile's `ENV` block instead. Only `.env.example`, which lists variable *names* and no values, remains.
+- **No `.env` file exists.** The repo contains only `.env.example`, which lists variable *names* without values. The sandbox supplies its throwaway database values through the Dockerfile's `ENV` block.
 - `/tmp` is empty at start.
 
-A side effect worth knowing: because the repo no longer carries a `.env`, the app and its tests **only run inside the container**, where the `ENV` block defines `SECRET_KEY` and the database settings. Running `pytest` on the host now fails at import with `ImproperlyConfigured: Set the SECRET_KEY environment variable`. That is the intended direction — the sandbox is the only configured environment.
+Without a repo-level `.env`, host runs must supply `SECRET_KEY` and the database settings explicitly. The container supplies them through its `ENV` block. Running `pytest` on the host without these variables fails during import with `ImproperlyConfigured: Set the SECRET_KEY environment variable`.
 
 ---
 
@@ -189,9 +189,9 @@ Captured agent session output:
   completed successfully.
 ```
 
-### 6c. Confirming output persisted, and that nothing was written outside `/workspace`
+### 6c. Confirming host persistence and container-local writes
 
-`docker diff` lists changes to the container layer. It excludes bind mounts and volumes, so **every listed path is a write outside the project mount**:
+`docker diff` lists changes to the container layer rather than writes made through the project bind mount:
 
 ```
 === changed paths grouped by top-level dir ===
@@ -211,7 +211,7 @@ Count Name
 (only /root/.pki and /root/.cache/ms-playwright — both container-local)
 ```
 
-Every write outside `/workspace` went to `/tmp`, `/root`, or `/usr` inside the disposable container layer and is destroyed by `--rm`. No host path outside the repo was touched.
+The reported writes outside `/workspace` stayed in container-local paths (`/tmp`, `/root`, `/usr`, `/run`, and `/var`) or the named `/claude-auth` volume. `--rm` destroys the container-layer writes, while the auth volume persists by design. No host path outside the repo was touched.
 
 The other half of the check is that intended output *does* reach the host. Writing one file to each location from inside the container:
 
@@ -220,7 +220,7 @@ echo "written by the agent inside the container" > /workspace/agent-output-probe
 echo "scratch, should not survive" > /tmp/scratch-probe.txt
 ```
 
-Then, after the container exited, from the host — **Windows PowerShell:**
+After the container exits, run this from **Windows PowerShell** on the host:
 
 ```powershell
 Get-Content agent-output-probe.md
@@ -235,7 +235,7 @@ written by the agent inside the container
 False
 ```
 
-The `/workspace` write survived the container's deletion and is readable on the host at `C:\Users\jimmy\PycharmProjects\SessionSpyre`. The `/tmp` write did not exist on the host at any point and vanished with `--rm`. That is the persistence split working in both directions — the same mechanism that carried the agent's source edits and `staticfiles/` through during the smoke test.
+The `/workspace` file survived the container's deletion and is readable from the host repo. The `/tmp` file never appeared on the host and vanished with `--rm`. The same bind mount preserved the agent's source edits and `staticfiles/` during the smoke test.
 
 ---
 
@@ -245,7 +245,7 @@ The `/workspace` write survived the container's deletion and is readable on the 
 
 `/workspace` maps to the repo root and nothing above it. This is the smallest practical unit because pytest resolves from the root-level `pytest.ini`, while the agent works across `session_tracker/`, `templates/`, `SessionSpyre/settings/`, and `tests/`. A narrower mount would break test collection without meaningfully reducing risk.
 
-**The risk this prevents:** my host home directory contains `~/.ssh` keys with push access to this repo's remote, `~/.aws`, browser profiles, and unrelated client projects. Mounting `C:\Users\jimmy` would let a misbehaving or prompt-injected agent read a private key and push to any accessible repo. It could also copy credentials into a file and serve them over the published port. The checks in §4 show that the boundary holds: `/root/.ssh` inside the container is empty, and no host user path is reachable. A bad `rm` command or runaway script can damage only this git-tracked folder.
+**The risk this prevents:** my host home directory contains `~/.ssh` keys with push access to this repo's remote, `~/.aws`, browser profiles, and unrelated client projects. Mounting the home directory would let a misbehaving or prompt-injected agent read a private key and push to any accessible repo. It could also copy credentials into a file and serve them over the published port. The checks in §4 show that the boundary holds: `/root/.ssh` inside the container is empty, and no host user path is reachable. A bad `rm` command or runaway script can damage only this git-tracked folder.
 
 **2. What did you choose to keep ephemeral?**
 
@@ -261,7 +261,7 @@ Three paths persist:
 - **`sessionspyre-pgdata`** stores recorded sessions and accounts. Without it, exiting the container wipes the database and leaves the smoke test with no history to replay.
 - **`sessionspyre-claude-auth`** contains only the agent credential. It is `chmod 600` in a named volume, deliberately kept *out* of the image.
 
-**The risk that last choice prevents:** the obvious shortcut is to bake the credential into the image so the agent never has to log in again. Docker image layers are readable by anyone who can pull the image, and layer contents survive even if a later layer deletes the file — so publishing that image, or sharing it with a teammate, would hand over a working credential for my Anthropic account. Anyone holding it could run agent sessions billed to me and read whatever those sessions touch. Keeping it in a named volume means the credential exists only on this machine's Docker storage and never travels with the image. The same reasoning is why `SECRET_KEY` and `DB_PASSWORD` being `ENV` instructions is listed as a live risk in Q6 — that is the mistake I avoided here but have not yet fixed there.
+**The risk that last choice prevents:** keeping the Claude credential in a named volume prevents it from being stored in the image. Anyone who can pull an image can inspect its layers, including files deleted by later layers. Baking the credential into the image would expose my Anthropic account and let someone run billed agent sessions or read files those sessions access. The named volume stays in this machine's Docker storage and does not travel with the image. `SECRET_KEY` and `DB_PASSWORD` still use `ENV` instructions, so Q6 lists them as a remaining risk.
 
 Persistence is limited to these paths. Everything else is ephemeral.
 
@@ -282,7 +282,7 @@ Each dependency traces back to a finding in §1:
 
 The starter image included **`nano`** and **`opencode-ai`**, but both were removed. The agent uses its own editing tools instead of a terminal editor, and a second agent is unnecessary.
 
-`ngrok` earns its place through a bug this project actually hit: registering a user through the tunnel returned `403 Origin checking failed` because the ngrok host was not in `CSRF_TRUSTED_ORIGINS`. That failure is invisible over `localhost` — the setting is not consulted for same-origin requests. An agent asked to fix cross-origin, CSRF, or forwarded-scheme behaviour needs a public origin to reproduce the problem at all, which is why the tunnel client lives in the image rather than only on the host.
+The project has already exposed the need for `ngrok`. Registering a user through the tunnel returned `403 Origin checking failed` because the ngrok host was missing from `CSRF_TRUSTED_ORIGINS`. The setting does not apply to same-origin requests over `localhost`. An agent therefore needs a public origin to reproduce cross-origin, CSRF, or forwarded-scheme problems, so the tunnel client is installed in the image.
 
 Chromium's OS libraries are listed explicitly. The alternative, `playwright install --with-deps`, assumes Ubuntu and fails on Debian trixie while looking for `ttf-unifont` and `ttf-ubuntu-font-family`.
 
@@ -298,12 +298,11 @@ The test in §5 also confirmed the *network* boundary. With `--network none`, th
 
 **6. What risks remain?**
 
-**Third-party CDN scripts in the replay dashboard are the most serious project-specific risk.** `templates/base.html` loads Tailwind, htmx, Alpine, `alpine-morph`, and `rrweb-player` from `cdn.jsdelivr.net`, `unpkg.com`, and `cdnjs.cloudflare.com`. Several use unpinned versions: `htmx.org@latest`, `alpinejs@3.x.x`, and `rrweb-player@latest`. These scripts run on the page that renders **recorded user sessions**, which contain other people's form input and browsing behaviour. A compromised CDN or malicious `@latest` release could access the replay data and the logged-in dashboard session, then send that data to any host. This attack would not require agent involvement. *Mitigation:* store the scripts locally, as the project already does with `js/vendor/rrweb.min.js`, or pin exact versions with Subresource Integrity hashes. Combine this with the egress allowlist below so an injected script cannot send data elsewhere.
+**Third-party CDN scripts in the replay dashboard are the most serious project-specific risk.** `templates/base.html` loads Tailwind, htmx, Alpine, `alpine-morph`, and `rrweb-player` from `cdn.jsdelivr.net`, `unpkg.com`, and `cdnjs.cloudflare.com`. Several versions are unpinned: `htmx.org@latest`, `alpinejs@3.x.x`, and `rrweb-player@latest`. These scripts run on the page that renders **recorded user sessions**, which contain other people's form input and browsing behaviour. A compromised CDN or malicious release could access the replay data and logged-in dashboard session, then send the data to any host. This would not require agent involvement. *Mitigation:* store the scripts locally, as the project already does with `js/vendor/rrweb.min.js`, or pin exact versions with Subresource Integrity hashes. Combine this with the egress allowlist below so an injected script cannot send data elsewhere.
 
 Other risks:
 
 - **Unrestricted outbound network.** §5 shows that `--network none` blocks egress, but the agent needs `api.anthropic.com` and the UI needs the CDN hosts. The default `bridge` network therefore remains open, and anything in the container can reach any host. *Mitigation:* use a proxy sidecar or a `--network` allowlist limited to `api.anthropic.com` and the three CDN hosts. Then rerun the §5 curl check to confirm that every other destination remains blocked.
-- **`.git` is readable and writable at `/workspace`.** `.dockerignore` excludes it from the image but does not affect the bind mount. Full history, branch names, and remote URLs are visible to anything running in the container. *Mitigation:* keep nothing sensitive in history; if a secret was ever committed, rotate it rather than relying on the sandbox to contain it. (The related `.env` exposure is now closed — the file was deleted from the repo, verified in §4. Any future secret belongs in a runtime `--env` flag or a mounted secret, never a file at the repo root.)
+- **`.git` is readable and writable at `/workspace`.** `.dockerignore` excludes it from the image but does not affect the bind mount. Anything running in the container can read the full history, branch names, and remote URLs or rewrite Git history. *Mitigation:* keep secrets out of Git history and rotate any secret that was previously committed. Commit before giving work to an agent so destructive changes can be recovered from the remote. The repo has no `.env` file; future secrets should use a runtime `--env` flag or mounted secret.
 - **Secrets are baked into the image.** `SECRET_KEY` and `DB_PASSWORD` use `ENV` instructions, which Docker flags during the build as `SecretsUsedInArgOrEnv`. The values are currently disposable, but the image must not be pushed to a shared registry. *Mitigation:* pass them at runtime with `--env`.
 - **Everything runs as root in one container.** The agent, web server, and Postgres share a root-owned namespace. There is no privilege separation between the agent and the session data it can read. *Mitigation:* add a non-root `USER` and run Postgres under its own account.
-- **The agent can rewrite git history.** Write access to `/workspace` includes `.git`, so the remote is the recovery point. *Mitigation:* commit before giving work to an agent so a destructive rewrite can be recovered from the remote.
