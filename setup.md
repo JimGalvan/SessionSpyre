@@ -17,7 +17,7 @@ These findings come from `requirements.txt`, `pytest.ini`, `manage.py`, `Session
 | Test framework | pytest + `pytest-django` + `pytest-playwright` |
 | Local services | **PostgreSQL only.** `development.py` hardcodes `django.db.backends.postgresql` with no SQLite fallback, so migrations and tests need a real Postgres instance. Redis appears in `prod.py`, but development uses `InMemoryChannelLayer`, so Redis is **not** installed. |
 | Env vars / credentials referenced | `SECRET_KEY`, `DB_NAME`, `DB_USER`, `DB_PASSWORD`, `DB_HOST`, `DB_PORT` (`.env.example`); `DATABASE_URL` + `REDIS_URL` in prod only |
-| Which can be mocked or omitted | All of them. Postgres runs inside the container, using throwaway credentials defined by the sandbox. `DATABASE_URL` and `REDIS_URL` apply only to production and are omitted. No real credentials enter the image. |
+| Which can be mocked or omitted | All of them. The repo carries **no `.env` file** — only `.env.example`, which lists variable names without values. Postgres runs inside the container, so the sandbox defines its own throwaway credentials in the Dockerfile's `ENV` block. `DATABASE_URL` and `REDIS_URL` are production-only and omitted. No real credential exists anywhere in the repo or the image. |
 | Build / run commands the repo defines | `manage.py migrate`, `manage.py collectstatic`, `daphne SessionSpyre.asgi:application` (ASGI; Channels overrides `runserver`) |
 | Smallest folder safely mountable | The repo root. The agent edits `session_tracker/`, `templates/`, `SessionSpyre/settings/`, and `tests/`, while pytest resolves from the root-level `pytest.ini`. Nothing above the repo root is needed. |
 | Does the agent need network? | **Yes, for two reasons.** See §5 for the test results. |
@@ -83,15 +83,17 @@ ls -la /root/.ssh; echo "---"; ls -la /workspace/.env; echo "---"; ls /tmp
 ```
 total 12
 drwx------ 2 root root 4096 Aug 14 22:14 .
-drwx------ 1 root root 4096 Aug 15 01:54 ..
+drwx------ 1 root root 4096 Aug 15 02:16 ..
 ---
--rwxrwxrwx 1 root root 249 May 28 02:50 /workspace/.env
+ls: cannot access '/workspace/.env': No such file or directory
 ---
 ```
 
 - `/root/.ssh` is **empty**. It belongs to the container, not the host. `/root/.aws`, `/host`, `/mnt/c`, and `/c/Users/jimmy` do not exist in the container.
-- `/workspace/.env` **is** readable. This is a known gap covered in Q6.
+- **No `.env` file exists.** It was deleted from the repo, so there is no credential file for a prompt-injected agent to read through the bind mount. The sandbox supplies its own throwaway database values through the Dockerfile's `ENV` block instead. Only `.env.example`, which lists variable *names* and no values, remains.
 - `/tmp` is empty at start.
+
+A side effect worth knowing: because the repo no longer carries a `.env`, the app and its tests **only run inside the container**, where the `ENV` block defines `SECRET_KEY` and the database settings. Running `pytest` on the host now fails at import with `ImproperlyConfigured: Set the SECRET_KEY environment variable`. That is the intended direction — the sandbox is the only configured environment.
 
 ---
 
@@ -271,7 +273,7 @@ The test in §5 also confirmed the *network* boundary. With `--network none`, th
 Other risks:
 
 - **Unrestricted outbound network.** §5 shows that `--network none` blocks egress, but the agent needs `api.anthropic.com` and the UI needs the CDN hosts. The default `bridge` network therefore remains open, and anything in the container can reach any host. *Mitigation:* use a proxy sidecar or a `--network` allowlist limited to `api.anthropic.com` and the three CDN hosts. Then rerun the §5 curl check to confirm that every other destination remains blocked.
-- **`.env` and `.git` are readable at `/workspace`.** `.dockerignore` excludes them from the image but does not affect the bind mount, as verified in §4. With open egress, a prompt-injected agent could read `.env` and send it elsewhere. *Mitigation:* move real secrets out of the repo root and treat the current development values as compromised by default.
+- **`.git` is readable and writable at `/workspace`.** `.dockerignore` excludes it from the image but does not affect the bind mount. Full history, branch names, and remote URLs are visible to anything running in the container. *Mitigation:* keep nothing sensitive in history; if a secret was ever committed, rotate it rather than relying on the sandbox to contain it. (The related `.env` exposure is now closed — the file was deleted from the repo, verified in §4. Any future secret belongs in a runtime `--env` flag or a mounted secret, never a file at the repo root.)
 - **Secrets are baked into the image.** `SECRET_KEY` and `DB_PASSWORD` use `ENV` instructions, which Docker flags during the build as `SecretsUsedInArgOrEnv`. The values are currently disposable, but the image must not be pushed to a shared registry. *Mitigation:* pass them at runtime with `--env`.
 - **Everything runs as root in one container.** The agent, web server, and Postgres share a root-owned namespace. There is no privilege separation between the agent and the session data it can read. *Mitigation:* add a non-root `USER` and run Postgres under its own account.
 - **The agent can rewrite git history.** Write access to `/workspace` includes `.git`, so the remote is the recovery point. *Mitigation:* commit before giving work to an agent so a destructive rewrite can be recovered from the remote.
