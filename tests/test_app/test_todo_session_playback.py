@@ -9,8 +9,8 @@ from pathlib import Path
 TODO_APP_URL = (Path(__file__).parent / "todo-app.html").as_uri()
 
 
-def test_add_and_edit_todo_priority(page):
-    page.goto(TODO_APP_URL)
+def add_and_edit_todo_priority(page, url=TODO_APP_URL):
+    page.goto(url)
     page.wait_for_timeout(2000)
 
     page.fill("#new-todo-text", "Playwright generated todo")
@@ -25,3 +25,7 @@ def test_add_and_edit_todo_priority(page):
     editing_item.get_by_role("button", name="Save").click()
 
     page.wait_for_timeout(2000)
+
+
+def test_add_and_edit_todo_priority(page):
+    add_and_edit_todo_priority(page)

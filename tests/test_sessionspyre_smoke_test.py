@@ -1,5 +1,6 @@
 import os
 import sys
+import tempfile
 import uuid
 from pathlib import Path
 
@@ -8,11 +9,11 @@ from playwright.sync_api import expect
 BASE_URL = os.environ.get("SESSIONSPYRE_BASE_URL", "http://localhost:8000")
 
 TEST_APP_DIR = Path(__file__).parent / "test_app"
-TODO_APP_PATH = TEST_APP_DIR / "todo-app.html"
+TODO_APP_TEMPLATE_PATH = TEST_APP_DIR / "todo-app.html"
 SCRIPT_PLACEHOLDER = "{#  Add Recording script in here  #}"
 
 sys.path.insert(0, str(TEST_APP_DIR))
-from test_app.test_todo_session_playback import test_add_and_edit_todo_priority as run_todo_interactions  # noqa: E402
+from test_app.test_todo_session_playback import add_and_edit_todo_priority  # noqa: E402
 
 
 def test_register_login_create_site_and_inject_snippet(page, context):
@@ -62,9 +63,23 @@ def test_register_login_create_site_and_inject_snippet(page, context):
     snippet_text = page.evaluate("navigator.clipboard.readText()")
     assert "recordConfig" in snippet_text, f"unexpected clipboard content: {snippet_text!r}"
 
-    html = TODO_APP_PATH.read_text(encoding="utf-8")
+    html = TODO_APP_TEMPLATE_PATH.read_text(encoding="utf-8")
     if SCRIPT_PLACEHOLDER not in html:
-        raise RuntimeError(f"Placeholder {SCRIPT_PLACEHOLDER!r} not found in {TODO_APP_PATH}")
-    TODO_APP_PATH.write_text(html.replace(SCRIPT_PLACEHOLDER, snippet_text, 1), encoding="utf-8")
+        raise RuntimeError(f"Placeholder {SCRIPT_PLACEHOLDER!r} not found in {TODO_APP_TEMPLATE_PATH}")
+    injected_html = html.replace(SCRIPT_PLACEHOLDER, snippet_text, 1)
 
-    run_todo_interactions(page)
+    temp_dir = Path(tempfile.mkdtemp(prefix="sessionspyre_todo_app_"))
+    temp_todo_path = temp_dir / "todo-app.html"
+    temp_todo_path.write_text(injected_html, encoding="utf-8")
+
+    add_and_edit_todo_priority(page, temp_todo_path.as_uri())
+
+    page.goto(f"{BASE_URL}/sites")
+    site_card.get_by_role("link", name="View Sessions").click()
+    page.wait_for_url("**/sessions_view/**")
+
+    session_item = page.locator("#sessions_list .cursor-pointer").first
+    expect(session_item).to_be_visible(timeout=10000)
+    session_item.click()
+
+    expect(page.locator("#rrweb-player iframe")).to_be_visible(timeout=10000)
