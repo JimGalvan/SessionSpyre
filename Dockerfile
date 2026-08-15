@@ -16,6 +16,16 @@ RUN apt-get update && apt-get install -y \
 COPY requirements.txt .
 RUN pip install --no-cache-dir -r requirements.txt
 
+# Chromium + its OS libs, so the Playwright end-to-end smoke test can run in-container.
+# Deps are listed explicitly: playwright's --with-deps assumes Ubuntu and fails on
+# Debian trixie (it looks for ttf-unifont / ttf-ubuntu-font-family, which don't exist here).
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    libnss3 libnspr4 libatk1.0-0t64 libatk-bridge2.0-0t64 libcups2t64 libdrm2 \
+    libxkbcommon0 libxcomposite1 libxdamage1 libxfixes3 libxrandr2 libgbm1 \
+    libpango-1.0-0 libcairo2 libasound2t64 \
+    && rm -rf /var/lib/apt/lists/* \
+    && python -m playwright install chromium
+
 # App/DB environment — Postgres runs in this same container, so these are
 # fixed at build time rather than pulled from a .env file.
 ENV DJANGO_ENV=development \

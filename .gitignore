@@ -1,4 +1,5 @@
 staticfiles/
+sandbox-security-notes.md
 
 ### MonoDevelop template
 #User Specific
@@ -1084,3 +1085,4 @@ abstract.record*
 secring.*
 
 
+/.claude/
