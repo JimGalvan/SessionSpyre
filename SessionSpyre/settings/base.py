@@ -161,5 +161,13 @@ LOGGING = {
 
 AUTH_USER_MODEL = 'session_tracker.UserAccount'
 
-SCRIPT_URL = ''
+# Relative path — session_tracker.context_processors.settings_context_processor
+# resolves it against the incoming request's host, so the "install snippet"
+# always points at whatever domain is actually serving this app.
+SCRIPT_URL = '/static/js/record.js'
+
+# Trust the reverse proxy's forwarded scheme (ngrok in dev, Railway in prod) so
+# request.build_absolute_uri() reports https instead of the plain http the
+# app itself sees behind the proxy.
+SECURE_PROXY_SSL_HEADER = ('HTTP_X_FORWARDED_PROTO', 'https')
 
