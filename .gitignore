@@ -1086,3 +1086,21 @@ secring.*
 
 
 /.claude/
+
+### Project overrides — keep these last, they undo collateral damage from the
+### generic templates above.
+
+# Python bytecode. The ModelSim template's "[_@]*" is what was ignoring these;
+# spell it out so the un-ignore below doesn't let .pyc files back in.
+__pycache__/
+*.py[cod]
+
+# "[_@]*" also ignored every __init__.py in the project. A clone therefore had
+# session_tracker/migrations/ without __init__.py, Django's loader treated it as
+# a namespace package and marked the app unmigrated, and migrate died on
+# admin.0001_initial with 'relation "session_tracker_useraccount" does not exist'.
+!**/__init__.py
+
+# The Calabash template ignores anything named "vendor"; we ship vendored JS.
+!session_tracker/static/js/vendor/
+!session_tracker/static/js/vendor/**
