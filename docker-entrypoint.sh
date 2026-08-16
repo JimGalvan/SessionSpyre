@@ -25,6 +25,45 @@ cd /workspace
 python manage.py migrate --noinput
 python manage.py collectstatic --noinput
 
+# --- App server ---
+# The default CMD runs daphne as PID 1. An interactive start ("... sessionspyre
+# bash") replaces that CMD, so nothing would listen on 8000; background the
+# server for those sessions instead. The PID-1 path is left untouched.
+if [ "${1:-}" != "daphne" ]; then
+  daphne -b 0.0.0.0 -p 8000 SessionSpyre.asgi:application > /tmp/daphne.log 2>&1 &
+  for _ in $(seq 30); do
+    # Any HTTP response proves the port is accepting; -f would reject a 404.
+    curl -s -o /dev/null "http://127.0.0.1:8000/" && break
+    sleep 1
+  done
+  echo "daphne listening on :8000  (log: /tmp/daphne.log)"
+fi
+
+# --- Public tunnel (optional) ---
+# ngrok is installed in the image but starts only when a token is supplied:
+#   docker run ... -e NGROK_AUTHTOKEN=<token> ...
+# The agent reads NGROK_AUTHTOKEN itself, so the token never touches disk.
+# NGROK_DOMAIN optionally pins a reserved domain instead of a random one.
+if [ -n "${NGROK_AUTHTOKEN:-}" ]; then
+  if [ -n "${NGROK_DOMAIN:-}" ]; then
+    ngrok http 8000 --domain "$NGROK_DOMAIN" --log stdout > /tmp/ngrok.log 2>&1 &
+  else
+    ngrok http 8000 --log stdout > /tmp/ngrok.log 2>&1 &
+  fi
+  NGROK_URL=""
+  for _ in $(seq 30); do
+    NGROK_URL=$(curl -sf http://127.0.0.1:4040/api/tunnels 2>/dev/null \
+      | python -c "import sys,json; t=json.load(sys.stdin)['tunnels']; print(t[0]['public_url'] if t else '')" 2>/dev/null || true)
+    [ -n "$NGROK_URL" ] && break
+    sleep 1
+  done
+  if [ -n "$NGROK_URL" ]; then
+    echo "ngrok tunnel: $NGROK_URL"
+  else
+    echo "ngrok failed to start - see /tmp/ngrok.log" >&2
+  fi
+fi
+
 AUTH_DIR=/claude-auth
 mkdir -p "$AUTH_DIR" /root/.claude
 

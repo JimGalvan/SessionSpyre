@@ -58,9 +58,34 @@ docker run -it --rm -p 8000:8000 `
 
 **Mounted path:** `${PWD}` (the repo root) maps to `/workspace`. No other host path is mounted.
 
+### Public tunnel
+
+Passing `NGROK_AUTHTOKEN` starts an ngrok tunnel during startup and prints the URL just above the shell prompt. Without it, no tunnel runs and the rest of the sandbox is unaffected.
+
+```powershell
+docker run -it --rm -p 8000:8000 -p 4040:4040 `
+  -e NGROK_AUTHTOKEN=$env:NGROK_AUTHTOKEN `
+  -v sessionspyre-pgdata:/var/lib/postgresql `
+  -v sessionspyre-claude-auth:/claude-auth `
+  -v "${PWD}:/workspace" `
+  sessionspyre bash
+```
+
+The agent reads `NGROK_AUTHTOKEN` directly, so the token is never written to the image or a volume. Sourcing it from `$env:NGROK_AUTHTOKEN` also keeps it out of your shell history. Add `-e NGROK_DOMAIN=<domain>` to pin a reserved domain instead of a random one; `development.py` adds that value to `CSRF_TRUSTED_ORIGINS`, which already covers `*.ngrok-free.app` and `*.ngrok.app`.
+
+The URL is printed once at startup. To retrieve it later, from the container shell:
+
+```bash
+curl -s http://127.0.0.1:4040/api/tunnels | python -c "import sys,json; print(json.load(sys.stdin)['tunnels'][0]['public_url'])"
+```
+
+Publishing `-p 4040:4040` is optional — it only exposes ngrok's request inspector to the host browser.
+
 > **Use PowerShell, not Git Bash.** Git Bash rewrites the container path `/workspace` as a Windows path. The bind mount then lands in the wrong place, and the agent's edits do not reach the host. If you must use Git Bash, prefix the command with `MSYS_NO_PATHCONV=1`.
 
 Before opening the shell, the entrypoint starts Postgres, creates the app role and database if they do not exist (idempotently), then runs `migrate` and `collectstatic`. `--rm` deletes the container when it exits. Persistent data stays on the mounted volumes.
+
+Passing `bash` replaces the image's `CMD` (`daphne …`), so the entrypoint starts daphne in the background for non-`daphne` commands and waits for `:8000` before handing over the shell. Its output goes to `/tmp/daphne.log`. Running the image with no command still runs daphne as PID 1, unchanged.
 
 ---
 
