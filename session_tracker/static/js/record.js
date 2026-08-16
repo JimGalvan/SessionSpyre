@@ -3,6 +3,16 @@
     // regardless of what loads or awaits happen later.
     const OWN_SCRIPT_SRC = document.currentScript && document.currentScript.src;
 
+    // The socket must reach the SessionSpyre server, which is whatever origin
+    // served this script — not the embedding page's origin, and not a fixed
+    // host. Scheme follows that same origin: a page on http:// embedding a
+    // script from https:// still needs wss://. Falls back to the page's origin
+    // only when currentScript was unavailable (same-origin install).
+    const WS_BASE = (() => {
+        const origin = OWN_SCRIPT_SRC ? new URL(OWN_SCRIPT_SRC) : window.location;
+        return `${origin.protocol === 'https:' ? 'wss:' : 'ws:'}//${origin.host}`;
+    })();
+
     const REQUIRED_CONFIG_KEYS = ['userId', 'siteId', 'siteKey'];
     const COOKIE_NAMES = ['sessionid', 'authToken', 'JSESSIONID', 'csrftoken'];
     const TOKEN_NAMES = ['authToken', 'sessionToken', 'jwtToken', 'accessToken'];
@@ -159,8 +169,7 @@
 
             const siteUrl = window.location.href;
             params += `&siteUrl=${encodeURIComponent(siteUrl)}`;
-            const wsProtocol = window.location.protocol === 'https:' ? 'wss://' : 'ws://';
-            let socket = new WebSocket(`${wsProtocol}localhost:8000/ws/record-session/${params}`);
+            let socket = new WebSocket(`${WS_BASE}/ws/record-session/${params}`);
 
             socket.onopen = () => {
                 logger.debug("WebSocket connection opened");
